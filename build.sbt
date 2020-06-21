@@ -18,11 +18,11 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-multi-node-testkit" % akkaVersion % Test,
   "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion % Test,
 
-  "org.scalatest" %% "scalatest" % "3.0.8" % Test,
+  "org.scalatest" %% "scalatest" % "3.2.0" % Test,
 
   // aeron
-  "io.aeron" % "aeron-driver" % "1.27.0",
-  "io.aeron" % "aeron-client" % "1.27.0",
+  "io.aeron" % "aeron-driver" % "1.28.2",
+  "io.aeron" % "aeron-client" % "1.28.2",
 
   "ch.qos.logback" % "logback-classic" % "1.2.3"
 )
