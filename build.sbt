@@ -13,16 +13,15 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-remote" % akkaVersion,
   "com.typesafe.akka" %% "akka-testkit" % akkaVersion,
   "com.typesafe.akka" %% "akka-persistence-typed" % akkaVersion,
-
+  // akka persistence for jdbc
+  "com.lightbend.akka" %% "akka-persistence-jdbc" % "4.0.0",
+  "com.typesafe.akka" %% "akka-persistence-query" % akkaVersion,
   // akka test kit
   "com.typesafe.akka" %% "akka-multi-node-testkit" % akkaVersion % Test,
   "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion % Test,
-
   "org.scalatest" %% "scalatest" % "3.2.0" % Test,
-
   // aeron
   "io.aeron" % "aeron-driver" % "1.28.2",
   "io.aeron" % "aeron-client" % "1.28.2",
-
   "ch.qos.logback" % "logback-classic" % "1.2.3"
 )
