@@ -26,3 +26,7 @@ libraryDependencies ++= Seq(
   "io.aeron" % "aeron-client" % "1.28.2",
   "ch.qos.logback" % "logback-classic" % "1.2.3"
 )
+
+lazy val root = (project in file("."))
+  .enablePlugins(MultiJvmPlugin)
+  .configs(MultiJvm)
