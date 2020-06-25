@@ -1,7 +1,7 @@
 package domain.model
 
-import domain.Entity
-import domain.model.Connection.ConnectionManager
+import domain.common.Entity
+import Connection.ConnectionManager
 
 object User {
   sealed trait UserEntity extends Entity

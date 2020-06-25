@@ -3,11 +3,6 @@ package domain.model
 import akka.actor.typed.ActorRef
 
 object Connection {
-  trait ConnectionData {
-    type T
-
-    def serializedVal: T
-  }
   trait Command
   type Connection = ActorRef[Command]
 

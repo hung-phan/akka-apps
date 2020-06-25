@@ -2,10 +2,11 @@ package application
 
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
-import domain.model.Connection.{Command, ConnectionData}
+import domain.common.SerializableData
+import domain.model.Connection.Command
 
 object ConnectionService {
-  case class Send(msg: ConnectionData) extends Command
+  case class Send(msg: SerializableData) extends Command
 
   def Actor(): Behavior[Command] =
     Behaviors.receiveMessagePartial {

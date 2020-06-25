@@ -1,4 +1,4 @@
-package domain
+package domain.common
 
 trait Entity {
   type ID

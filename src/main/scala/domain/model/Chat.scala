@@ -1,6 +1,6 @@
 package domain.model
 
-import domain.Entity
+import domain.common.Entity
 import domain.model.User.UserEntity
 
 object Chat {
