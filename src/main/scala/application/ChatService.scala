@@ -37,7 +37,6 @@ object ChatService {
 
   private def onCommand(shard: ActorRef[ClusterSharding.ShardCommand],
                         ctx: ActorContext[Command],
-                        state: ChatState,
                         command: Command): Effect[Event, ChatState] = {
     command match {
       case AddUser(user) =>
@@ -58,9 +57,7 @@ object ChatService {
     }
   }
 
-  private def applyEvent(ctx: ActorContext[Command],
-                         state: ChatState,
-                         event: Event): ChatState = {
+  private def applyEvent(state: ChatState, event: Event): ChatState = {
     event match {
       case AddedUser(user) =>
         state.addUser(user)
@@ -81,9 +78,8 @@ object ChatService {
       EventSourcedBehavior[Command, Event, ChatState](
         persistenceId = PersistenceId.ofUniqueId(entityID),
         emptyState = ChatState(entityID, Set.empty, List.empty, List.empty),
-        commandHandler =
-          (state, command) => onCommand(shard, ctx, state, command),
-        eventHandler = (state, event) => applyEvent(ctx, state, event)
+        commandHandler = (_, command) => onCommand(shard, ctx, command),
+        eventHandler = (state, event) => applyEvent(state, event)
       ).onPersistFailure(
           SupervisorStrategy.restartWithBackoff(1 second, 30 seconds, 0.2)
         )
