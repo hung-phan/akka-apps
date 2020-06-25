@@ -1,11 +1,11 @@
 package domain.model
 
 import akka.actor.typed.ActorRef
-import domain.common.SerializableData
+import domain.common.JSONSerializable
 
 object Connection {
   sealed trait Command
-  case class ForwardMsg(msg: SerializableData) extends Command
+  case class ForwardMsg(msg: JSONSerializable) extends Command
 
   type Connection = ActorRef[Command]
 

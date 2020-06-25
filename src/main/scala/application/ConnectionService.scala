@@ -5,10 +5,14 @@ import akka.actor.typed.scaladsl.Behaviors
 import domain.model.Connection.{Command, ForwardMsg}
 
 object ConnectionService {
-  def actor(): Behavior[Command] =
+  trait SocketConnection {
+    def send(msg: String): Unit
+  }
+
+  def actor(socket: SocketConnection): Behavior[Command] =
     Behaviors.receiveMessagePartial {
       case ForwardMsg(msg) =>
-        println(msg.serializedVal)
+        socket.send(msg.stringify)
         Behaviors.same
     }
 }
