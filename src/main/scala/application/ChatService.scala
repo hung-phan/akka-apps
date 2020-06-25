@@ -73,7 +73,7 @@ object ChatService {
     }
   }
 
-  def Actor(entityID: String,
+  def actor(entityID: String,
             shard: ActorRef[ClusterSharding.ShardCommand]): Behavior[Command] =
     Behaviors.setup { ctx =>
       ctx.setReceiveTimeout(5 minutes, ReceiveTimeout)

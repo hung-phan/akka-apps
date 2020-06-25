@@ -21,16 +21,16 @@ object UserService {
 
   val TypeKey = EntityTypeKey[Command]("UserEntity")
 
-  def Actor(entityID: String,
+  def actor(entityID: String,
             shard: ActorRef[ClusterSharding.ShardCommand],
             connectionManager: ConnectionManager): Behavior[Command] =
     Behaviors.setup { ctx =>
       Behaviors.receiveMessagePartial {
         case AddConnection(conn) =>
-          Actor(entityID, shard, connectionManager :+ conn)
+          actor(entityID, shard, connectionManager :+ conn)
 
         case RemoveConnection(conn) =>
-          Actor(entityID, shard, connectionManager :- conn)
+          actor(entityID, shard, connectionManager :- conn)
 
         case DispatchCmd(cmd) =>
           connectionManager.dispatch(cmd)
