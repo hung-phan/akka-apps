@@ -10,9 +10,10 @@ object MultiNodeSampleConfig extends MultiNodeConfig {
 
   commonConfig(
     ConfigFactory.parseString("""
-        |akka.loglevel = INFO
-        |akka.actor.provider = "cluster"
-        |akka.log-dead-letters-during-shutdown = off
-      """)
+      |akka.loglevel = INFO
+      |akka.cluster.roles = [compute]
+      |akka.remote.artery.canonical.port = 0
+      |akka.log-dead-letters-during-shutdown = off
+    """.stripMargin).withFallback(ConfigFactory.load("application.conf"))
   )
 }
