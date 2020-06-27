@@ -12,28 +12,34 @@ import domain.model.Connection.{
   ConnectionManager,
   Command => ConnectionCommand
 }
+import domain.serializer.MsgSerializeMarker
 
 object UserService {
-  sealed trait Command
+  sealed trait Command extends MsgSerializeMarker
   case class AddConnection(conn: Connection) extends Command
   case class RemoveConnection(conn: Connection) extends Command
   case class DispatchCmd(connectionCmd: ConnectionCommand) extends Command
+  case object Print extends Command
 
   val TypeKey = EntityTypeKey[Command]("UserEntity")
 
-  def actor(entityID: String,
+  def apply(entityID: String,
             shard: ActorRef[ClusterSharding.ShardCommand],
             connectionManager: ConnectionManager): Behavior[Command] =
     Behaviors.setup { ctx =>
       Behaviors.receiveMessagePartial {
         case AddConnection(conn) =>
-          actor(entityID, shard, connectionManager :+ conn)
+          UserService(entityID, shard, connectionManager :+ conn)
 
         case RemoveConnection(conn) =>
-          actor(entityID, shard, connectionManager :- conn)
+          UserService(entityID, shard, connectionManager :- conn)
 
         case DispatchCmd(cmd) =>
           connectionManager.dispatch(cmd)
+          Behaviors.same
+
+        case Print =>
+          ctx.log.info(s"Receive entityID: $entityID")
           Behaviors.same
       }
     }

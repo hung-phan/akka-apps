@@ -16,12 +16,13 @@ import akka.persistence.typed.scaladsl.{
 }
 import domain.model.Chat.{ChatLogEntity, ChatState}
 import domain.model.User.UserEntity
+import domain.serializer.MsgSerializeMarker
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
 object ChatService {
-  sealed trait Command
+  sealed trait Command extends MsgSerializeMarker
   case class AddUser(user: UserEntity) extends Command
   case class RemoveUser(user: UserEntity) extends Command
   case class AppendMsg(msg: ChatLogEntity) extends Command
@@ -70,7 +71,7 @@ object ChatService {
     }
   }
 
-  def actor(entityID: String,
+  def apply(entityID: String,
             shard: ActorRef[ClusterSharding.ShardCommand]): Behavior[Command] =
     Behaviors.setup { ctx =>
       ctx.setReceiveTimeout(5 minutes, ReceiveTimeout)

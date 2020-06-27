@@ -1,8 +1,7 @@
 package common
 
 import akka.actor.typed.scaladsl.adapter._
-import akka.cluster.typed.{Cluster, Join}
-import akka.remote.testconductor.RoleName
+import akka.cluster.typed.Cluster
 import akka.remote.testkit.{MultiNodeSpec, MultiNodeSpecCallbacks}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
@@ -32,11 +31,4 @@ trait STMultiNodeSpec
   implicit val typedSystem = system.toTyped
 
   val cluster = Cluster(typedSystem)
-
-  def join(from: RoleName, to: RoleName): Unit = {
-    runOn(from) {
-      cluster.manager ! Join(node(to).address)
-    }
-    enterBarrier(from.name + "-joined")
-  }
 }

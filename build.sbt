@@ -5,6 +5,8 @@ version := "0.1"
 scalaVersion := "2.13.2"
 
 lazy val akkaVersion = "2.6.6"
+lazy val jacksonVersion  = "3.6.6"
+lazy val kryoVersion  = "1.1.5"
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
@@ -13,6 +15,13 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-remote" % akkaVersion,
   "com.typesafe.akka" %% "akka-testkit" % akkaVersion,
   "com.typesafe.akka" %% "akka-persistence-typed" % akkaVersion,
+  // json serializer
+  "com.typesafe.akka" %% "akka-serialization-jackson" % akkaVersion,
+  // kryo serializer
+  "io.altoo" %% "akka-kryo-serialization" % kryoVersion,
+  // json serializer
+  "org.json4s" %% "json4s-jackson" % jacksonVersion,
+  "org.json4s" %% "json4s-core" % jacksonVersion,
   // akka persistence for jdbc
   "com.lightbend.akka" %% "akka-persistence-jdbc" % "4.0.0",
   "com.typesafe.akka" %% "akka-persistence-query" % akkaVersion,

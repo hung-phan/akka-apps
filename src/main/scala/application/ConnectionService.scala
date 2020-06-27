@@ -9,7 +9,7 @@ object ConnectionService {
     def send(msg: String): Unit
   }
 
-  def actor(socket: SocketConnection): Behavior[Command] =
+  def apply(socket: SocketConnection): Behavior[Command] =
     Behaviors.receiveMessagePartial {
       case ForwardMsg(msg) =>
         socket.send(msg.stringify)

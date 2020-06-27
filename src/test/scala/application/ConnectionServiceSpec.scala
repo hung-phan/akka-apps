@@ -22,7 +22,7 @@ class ConnectionServiceSpec
       val mockSocketConnection = mock[SocketConnection]
       (mockSocketConnection.send _).expects(serializedData).once()
 
-      val connectionActor = spawn(ConnectionService.actor(mockSocketConnection))
+      val connectionActor = spawn(ConnectionService(mockSocketConnection))
       connectionActor ! ForwardMsg(new DummyData)
     }
   }
