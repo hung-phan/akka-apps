@@ -2,15 +2,20 @@ package application
 
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
-import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, EntityRef, EntityTypeKey}
+import akka.cluster.sharding.typed.scaladsl.{
+  ClusterSharding,
+  EntityRef,
+  EntityTypeKey
+}
+import application.ConnectionService.{ConnectionActorRef, ConnectionManager}
 import domain.common.SerializableMsg
-import domain.model.Connection.{Connection, ConnectionManager, Command => ConnectionCommand}
 
 object UserService {
   sealed trait Command extends SerializableMsg
-  case class AddConnection(conn: Connection) extends Command
-  case class RemoveConnection(conn: Connection) extends Command
-  case class DispatchCmd(connectionCmd: ConnectionCommand) extends Command
+  case class AddConnection(conn: ConnectionActorRef) extends Command
+  case class RemoveConnection(conn: ConnectionActorRef) extends Command
+  case class DispatchCmd(connectionCmd: ConnectionService.Command)
+      extends Command
   case object Print extends Command
 
   val TypeKey = EntityTypeKey[Command]("UserEntity")

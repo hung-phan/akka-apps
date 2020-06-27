@@ -1,9 +1,8 @@
 package application
 
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
-import application.ConnectionService.SocketConnection
+import application.ConnectionService.{ForwardMsg, SocketConnection}
 import domain.common.JSONSerializable
-import domain.model.Connection.ForwardMsg
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.wordspec.AnyWordSpecLike
 

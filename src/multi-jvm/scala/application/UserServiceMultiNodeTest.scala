@@ -7,19 +7,19 @@ import akka.cluster.typed.Join
 import akka.remote.testconductor.RoleName
 import akka.remote.testkit.MultiNodeSpec
 import akka.testkit.ImplicitSender
+import application.ConnectionService.ConnectionManager
 import application.UserService.Print
 import common.{MultiNodeSampleConfig, STMultiNodeSpec}
-import domain.model.Connection.ConnectionManager
 import org.scalamock.scalatest.MockFactory
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-class UserServiceMultiJvm1 extends UserServiceSpec
-class UserServiceMultiJvm2 extends UserServiceSpec
-class UserServiceMultiJvm3 extends UserServiceSpec
+class UserServiceMultiJvm1 extends UserServiceMultiNodeTest
+class UserServiceMultiJvm2 extends UserServiceMultiNodeTest
+class UserServiceMultiJvm3 extends UserServiceMultiNodeTest
 
-class UserServiceSpec
+class UserServiceMultiNodeTest
     extends MultiNodeSpec(MultiNodeSampleConfig)
     with STMultiNodeSpec
     with ImplicitSender

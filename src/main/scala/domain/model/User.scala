@@ -1,7 +1,6 @@
 package domain.model
 
 import domain.common.Entity
-import Connection.ConnectionManager
 
 object User {
   sealed trait UserEntity extends Entity
@@ -10,8 +9,7 @@ object User {
     override type ID = String
   }
 
-  case class User(id: String, connectionManager: ConnectionManager)
-      extends UserEntity {
+  case class User(id: String, name: String) extends UserEntity {
     override type ID = String
   }
 }
