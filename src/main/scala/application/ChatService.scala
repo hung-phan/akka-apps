@@ -3,26 +3,18 @@ package application
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior, SupervisorStrategy}
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding.Passivate
-import akka.cluster.sharding.typed.scaladsl.{
-  ClusterSharding,
-  EntityRef,
-  EntityTypeKey
-}
+import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, EntityRef, EntityTypeKey}
 import akka.persistence.typed.PersistenceId
-import akka.persistence.typed.scaladsl.{
-  Effect,
-  EventSourcedBehavior,
-  RetentionCriteria
-}
+import akka.persistence.typed.scaladsl.{Effect, EventSourcedBehavior, RetentionCriteria}
+import domain.common.SerializableMsg
 import domain.model.Chat.{ChatLogEntity, ChatState}
 import domain.model.User.UserEntity
-import domain.serializer.MsgSerializeMarker
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
 object ChatService {
-  sealed trait Command extends MsgSerializeMarker
+  sealed trait Command extends SerializableMsg
   case class AddUser(user: UserEntity) extends Command
   case class RemoveUser(user: UserEntity) extends Command
   case class AppendMsg(msg: ChatLogEntity) extends Command

@@ -1,11 +1,10 @@
 package domain.model
 
 import akka.actor.typed.ActorRef
-import domain.common.JSONSerializable
-import domain.serializer.MsgSerializeMarker
+import domain.common.{JSONSerializable, SerializableMsg}
 
 object Connection {
-  sealed trait Command extends MsgSerializeMarker
+  sealed trait Command extends SerializableMsg
   case class ForwardMsg(msg: JSONSerializable) extends Command
 
   type Connection = ActorRef[Command]
