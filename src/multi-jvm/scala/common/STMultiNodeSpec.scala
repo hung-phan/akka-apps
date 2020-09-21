@@ -1,5 +1,6 @@
 package common
 
+import akka.actor.testkit.typed.scaladsl.ActorTestKit
 import akka.actor.typed.scaladsl.adapter._
 import akka.cluster.typed.Cluster
 import akka.remote.testkit.{MultiNodeSpec, MultiNodeSpecCallbacks}
@@ -24,11 +25,12 @@ trait STMultiNodeSpec
 
   // Might not be needed anymore if we find a nice way to tag all logging from a node
   override implicit def convertToWordSpecStringWrapper(
-    s: String
-  ): WordSpecStringWrapper =
+                                                        s: String
+                                                      ): WordSpecStringWrapper =
     new WordSpecStringWrapper(s"$s (on node '${this.myself.name}', $getClass)")
 
   implicit val typedSystem = system.toTyped
 
-  val cluster = Cluster(typedSystem)
+  lazy val cluster = Cluster(typedSystem)
+  lazy val testKit = ActorTestKit()
 }

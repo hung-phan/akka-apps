@@ -7,8 +7,8 @@ import akka.cluster.typed.Join
 import akka.remote.testconductor.RoleName
 import akka.remote.testkit.MultiNodeSpec
 import akka.testkit.ImplicitSender
-import application.ConnectionService.ConnectionManager
-import application.UserService.Print
+import application.ConnectionService.{ForwardMsg, SocketConnection}
+import application.UserService.{AddConnection, DispatchCmd}
 import common.{MultiNodeSampleConfig, STMultiNodeSpec}
 import org.scalamock.scalatest.MockFactory
 
@@ -16,7 +16,9 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 class UserServiceMultiJvm1 extends UserServiceMultiNodeTest
+
 class UserServiceMultiJvm2 extends UserServiceMultiNodeTest
+
 class UserServiceMultiJvm3 extends UserServiceMultiNodeTest
 
 class UserServiceMultiNodeTest
@@ -47,7 +49,7 @@ class UserServiceMultiNodeTest
           UserService(
             entityContext.entityId,
             entityContext.shard,
-            ConnectionManager(Set.empty)
+            List.empty
         )
       ).withSettings(ClusterShardingSettings(typedSystem).withRole("node1"))
     )
@@ -60,7 +62,7 @@ class UserServiceMultiNodeTest
           UserService(
             entityContext.entityId,
             entityContext.shard,
-            ConnectionManager(Set.empty)
+            List.empty
         )
       )
     )
@@ -72,15 +74,39 @@ class UserServiceMultiNodeTest
       join(node2, node1)
       join(node3, node1)
 
-      enterBarrier("all-up")
+      enterBarrier("bootstrapped")
     }
 
-    "should be able to send message to other node" in within(15 seconds) {
-      runOn(node1, node2, node3) {
+    val userId = "user-1"
+    val serializedData = "[1, 2, 3]"
+
+    "should be able to register connection to user actor" in within(15 seconds) {
+      def thunk(): Unit = {
         val region = startProxySharding()
-        region ! ShardingEnvelope("1", Print)
+        val socket = mock[SocketConnection]
+        val connectionActor = testKit.spawn(ConnectionService(socket))
+
+        region ! ShardingEnvelope(userId, AddConnection(connectionActor))
       }
-      enterBarrier("after sending message to user actor")
+
+      runOn(node1)(thunk)
+      runOn(node2)(thunk)
+      runOn(node3)(thunk)
+
+      enterBarrier("registered connection")
+    }
+
+    "should be able to dispatch command" in within(15 seconds) {
+      runOn(node1) {
+        val region = startProxySharding()
+
+        region ! ShardingEnvelope(
+          userId,
+          DispatchCmd(ForwardMsg(serializedData))
+        )
+      }
+
+      enterBarrier("forward command to all connections")
     }
   }
 }

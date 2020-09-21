@@ -6,31 +6,58 @@ import akka.cluster.sharding.typed.scaladsl.ClusterSharding.Passivate
 import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, EntityRef, EntityTypeKey}
 import akka.persistence.typed.PersistenceId
 import akka.persistence.typed.scaladsl.{Effect, EventSourcedBehavior, RetentionCriteria}
-import domain.common.SerializableMsg
-import domain.model.Chat.{ChatLogEntity, ChatState}
-import domain.model.User.UserEntity
+import domain.common.ID
+import domain.model.ChatModel.{ChatLogEntity, ChatState}
+import domain.model.UserModel.UserEntity
+import infrastructure.common.KryoSerializer
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
 object ChatService {
-  sealed trait Command extends SerializableMsg
+  def apply(
+             entityID: String,
+             shard: ActorRef[ClusterSharding.ShardCommand]
+           ): Behavior[Command] =
+    Behaviors.setup { ctx =>
+      ctx.setReceiveTimeout(5 minutes, ReceiveTimeout)
+
+      EventSourcedBehavior[Command, Event, ChatState](
+        persistenceId = PersistenceId.ofUniqueId(entityID),
+        emptyState = ChatState(ID(entityID), Set.empty, List.empty, List.empty),
+        commandHandler = (_, command) => onCommand(shard, ctx, command),
+        eventHandler = (state, event) => applyEvent(state, event)
+      ).onPersistFailure(
+        SupervisorStrategy.restartWithBackoff(1 second, 30 seconds, 0.2)
+      )
+        .withRetention(RetentionCriteria.snapshotEvery(20, 1))
+    }
+
   case class AddUser(user: UserEntity) extends Command
+
   case class RemoveUser(user: UserEntity) extends Command
+
   case class AppendMsg(msg: ChatLogEntity) extends Command
+
   case object ReceiveTimeout extends Command
+
   case object Terminate extends Command
 
   sealed trait Event
+
   case class AddedUser(user: UserEntity) extends Event
+
   case class RemovedUser(user: UserEntity) extends Event
+
   case class AppendedMsg(smg: ChatLogEntity) extends Event
 
   val TypeKey = EntityTypeKey[Command]("ChatEntity")
 
-  private def onCommand(shard: ActorRef[ClusterSharding.ShardCommand],
-                        ctx: ActorContext[Command],
-                        command: Command): Effect[Event, ChatState] = {
+  private def onCommand(
+                         shard: ActorRef[ClusterSharding.ShardCommand],
+                         ctx: ActorContext[Command],
+                         command: Command
+                       ): Effect[Event, ChatState] = {
     command match {
       case AddUser(user) =>
         Effect.persist(AddedUser(user))
@@ -63,23 +90,12 @@ object ChatService {
     }
   }
 
-  def apply(entityID: String,
-            shard: ActorRef[ClusterSharding.ShardCommand]): Behavior[Command] =
-    Behaviors.setup { ctx =>
-      ctx.setReceiveTimeout(5 minutes, ReceiveTimeout)
-
-      EventSourcedBehavior[Command, Event, ChatState](
-        persistenceId = PersistenceId.ofUniqueId(entityID),
-        emptyState = ChatState(entityID, Set.empty, List.empty, List.empty),
-        commandHandler = (_, command) => onCommand(shard, ctx, command),
-        eventHandler = (state, event) => applyEvent(state, event)
-      ).onPersistFailure(
-          SupervisorStrategy.restartWithBackoff(1 second, 30 seconds, 0.2)
-        )
-        .withRetention(RetentionCriteria.snapshotEvery(10, 2))
-    }
-
-  def getEntityRef(sharding: ClusterSharding,
-                   entityID: String): EntityRef[Command] =
+  def getEntityRef(
+                    sharding: ClusterSharding,
+                    entityID: String
+                  ): EntityRef[Command] =
     sharding.entityRefFor(TypeKey, entityID)
+
+  sealed trait Command extends KryoSerializer
+
 }

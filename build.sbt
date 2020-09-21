@@ -9,6 +9,9 @@ lazy val jacksonVersion  = "3.6.6"
 lazy val kryoVersion  = "1.1.5"
 
 libraryDependencies ++= Seq(
+  //shapeless
+  "com.chuusai" %% "shapeless" % "2.3.3",
+  // akka
   "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
   "com.typesafe.akka" %% "akka-cluster-typed" % akkaVersion,
   "com.typesafe.akka" %% "akka-cluster-sharding-typed" % akkaVersion,

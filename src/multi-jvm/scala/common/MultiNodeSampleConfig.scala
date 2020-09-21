@@ -10,12 +10,13 @@ object MultiNodeSampleConfig extends MultiNodeConfig {
 
   commonConfig(
     ConfigFactory.parseString("""
-      |akka.cluster.log-info = off
-      |akka.actor.serialize-messages = on
-      |akka.remote.artery.canonical.port = 0
-      |akka.cluster.log-info = off
-      |akka.cluster.metrics.enabled=off
-      |akka.log-dead-letters-during-shutdown = off
+                                |akka.loglevel = "INFO"
+                                |akka.cluster.log-info = off
+                                |akka.actor.serialize-messages = on
+                                |akka.remote.artery.canonical.port = 0
+                                |akka.cluster.log-info = off
+                                |akka.cluster.metrics.enabled=off
+                                |akka.log-dead-letters-during-shutdown = off
     """.stripMargin).withFallback(ConfigFactory.load("application.conf"))
   )
 }
