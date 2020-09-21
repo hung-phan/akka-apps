@@ -1,10 +1,21 @@
 package infrastructure.serializer
 
 import shapeless.labelled.FieldType
-import shapeless.{:+:, ::, CNil, Coproduct, HList, HNil, Inl, Inr, LabelledGeneric, Lazy, Witness}
+import shapeless.{
+  :+:,
+  ::,
+  CNil,
+  Coproduct,
+  HList,
+  HNil,
+  Inl,
+  Inr,
+  LabelledGeneric,
+  Lazy,
+  Witness
+}
 
 object JsonSerializer {
-
   sealed trait JsonValue
 
   trait JsonEncoder[A] {
@@ -16,16 +27,11 @@ object JsonSerializer {
   }
 
   final case class JsonString(value: String) extends JsonValue
-
   final case class JsonNumber(value: Double) extends JsonValue
-
   final case class JsonBoolean(value: Boolean) extends JsonValue
-
   final case class JsonArray(items: List[JsonValue]) extends JsonValue
-
   final case class JsonObject(fields: List[(String, JsonValue)])
-    extends JsonValue
-
+      extends JsonValue
   case object JsonNull extends JsonValue
 
   def createEncoder[A](func: A => JsonValue): JsonEncoder[A] =
@@ -48,23 +54,23 @@ object JsonSerializer {
     createEncoder(JsonBoolean(_))
 
   implicit def listEncoder[A](implicit
-                              encoder: JsonEncoder[A]
-                             ): JsonEncoder[List[A]] =
+      encoder: JsonEncoder[A]
+  ): JsonEncoder[List[A]] =
     createEncoder(list => JsonArray(list.map(encoder.encode)))
 
   implicit def optionEncoder[A](implicit
-                                encoder: JsonEncoder[A]
-                               ): JsonEncoder[Option[A]] =
+      encoder: JsonEncoder[A]
+  ): JsonEncoder[Option[A]] =
     createEncoder(opt => opt.map(encoder.encode).getOrElse(JsonNull))
 
   implicit val hnilEncoder: JsonObjectEncoder[HNil] =
     createObjectEncoder(_ => JsonObject(Nil))
 
   implicit def hlistObjectEncoder[K <: Symbol, H, T <: HList](implicit
-                                                              witness: Witness.Aux[K],
-                                                              hEncoder: Lazy[JsonEncoder[H]],
-                                                              tEncoder: JsonObjectEncoder[T]
-                                                             ): JsonObjectEncoder[FieldType[K, H] :: T] = {
+      witness: Witness.Aux[K],
+      hEncoder: Lazy[JsonEncoder[H]],
+      tEncoder: JsonObjectEncoder[T]
+  ): JsonObjectEncoder[FieldType[K, H] :: T] = {
     val fieldName: String = witness.value.name
 
     createObjectEncoder { hlist =>
@@ -76,16 +82,16 @@ object JsonSerializer {
   }
 
   implicit def genericObjectEncoder[A, H <: HList](implicit
-                                                   generic: LabelledGeneric.Aux[A, H],
-                                                   hEncoder: Lazy[JsonObjectEncoder[H]]
-                                                  ): JsonEncoder[A] =
+      generic: LabelledGeneric.Aux[A, H],
+      hEncoder: Lazy[JsonObjectEncoder[H]]
+  ): JsonEncoder[A] =
     createObjectEncoder(value => hEncoder.value.encode(generic.to(value)))
 
   implicit def coproductObjectEncoder[K <: Symbol, H, T <: Coproduct](implicit
-                                                                      witness: Witness.Aux[K],
-                                                                      hEncoder: Lazy[JsonEncoder[H]],
-                                                                      tEncoder: JsonObjectEncoder[T]
-                                                                     ): JsonObjectEncoder[FieldType[K, H] :+: T] = {
+      witness: Witness.Aux[K],
+      hEncoder: Lazy[JsonEncoder[H]],
+      tEncoder: JsonObjectEncoder[T]
+  ): JsonObjectEncoder[FieldType[K, H] :+: T] = {
     val typeName = witness.value.name
 
     createObjectEncoder {

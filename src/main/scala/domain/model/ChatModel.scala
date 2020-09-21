@@ -4,7 +4,6 @@ import domain.common.{Entity, ID, MsgType}
 import domain.model.UserModel.UserEntity
 
 object ChatModel {
-
   sealed trait ChatLogEntity extends Entity[String] {
     type MessageType
 
@@ -13,18 +12,18 @@ object ChatModel {
   }
 
   case class TextChatLog(id: ID[String], msg: MsgType[String], from: UserEntity)
-    extends ChatLogEntity {
+      extends ChatLogEntity {
     override type MessageType = String
   }
 
   val MAX_NUMBER_OF_LAST_MESSAGES = 20
 
   case class ChatState(
-                        id: ID[String],
-                        users: Set[UserEntity],
-                        previousMsgs: List[ChatLogEntity],
-                        lastMsgs: List[ChatLogEntity]
-                      ) extends Entity[String] {
+      id: ID[String],
+      users: Set[UserEntity],
+      previousMsgs: List[ChatLogEntity],
+      lastMsgs: List[ChatLogEntity]
+  ) extends Entity[String] {
     def addUser(user: UserEntity): ChatState =
       this.copy(users = users + user)
 

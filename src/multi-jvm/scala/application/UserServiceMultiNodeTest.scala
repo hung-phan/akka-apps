@@ -42,14 +42,13 @@ class UserServiceMultiNodeTest
   }
 
   def startPersistentSharding()
-    : ActorRef[ShardingEnvelope[UserService.Command]] = {
+      : ActorRef[ShardingEnvelope[UserService.Command]] = {
     ClusterSharding(typedSystem).init(
-      Entity(UserService.TypeKey)(
-        entityContext =>
-          UserService(
-            entityContext.entityId,
-            entityContext.shard,
-            List.empty
+      Entity(UserService.TypeKey)(entityContext =>
+        UserService(
+          entityContext.entityId,
+          entityContext.shard,
+          List.empty
         )
       ).withSettings(ClusterShardingSettings(typedSystem).withRole("node1"))
     )
@@ -57,12 +56,11 @@ class UserServiceMultiNodeTest
 
   def startProxySharding(): ActorRef[ShardingEnvelope[UserService.Command]] = {
     ClusterSharding(typedSystem).init(
-      Entity(UserService.TypeKey)(
-        entityContext =>
-          UserService(
-            entityContext.entityId,
-            entityContext.shard,
-            List.empty
+      Entity(UserService.TypeKey)(entityContext =>
+        UserService(
+          entityContext.entityId,
+          entityContext.shard,
+          List.empty
         )
       )
     )
@@ -80,7 +78,9 @@ class UserServiceMultiNodeTest
     val userId = "user-1"
     val serializedData = "[1, 2, 3]"
 
-    "should be able to register connection to user actor" in within(15 seconds) {
+    "should be able to register connection to user actor" in within(
+      15 seconds
+    ) {
       def thunk(): Unit = {
         val region = startProxySharding()
         val socket = mock[SocketConnection]
