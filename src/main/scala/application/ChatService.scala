@@ -93,8 +93,8 @@ object ChatService {
   }
 
   def getEntityRef(
-      sharding: ClusterSharding,
-      entityID: String
+      entityID: String,
+      sharding: ClusterSharding
   ): EntityRef[Command] =
     sharding.entityRefFor(TypeKey, entityID)
 }

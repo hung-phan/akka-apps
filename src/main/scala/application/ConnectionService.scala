@@ -14,15 +14,13 @@ object ConnectionService {
   }
 
   def apply(socket: SocketConnection): Behavior[Command] = {
-    Behaviors.setup { ctx =>
-      Behaviors.receiveMessagePartial {
-        case ForwardMsg(msg) =>
-          socket.send(msg)
-          Behaviors.same
+    Behaviors.receiveMessagePartial {
+      case ForwardMsg(msg) =>
+        socket.send(msg)
+        Behaviors.same
 
-        case Stop =>
-          Behaviors.stopped
-      }
+      case Stop =>
+        Behaviors.stopped
     }
   }
 }
