@@ -3,15 +3,13 @@ package application
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorRef
 import akka.cluster.ClusterEvent.{ClusterDomainEvent, MemberUp}
-import akka.cluster.ddata.Replicator
-import akka.cluster.ddata.typed.scaladsl.Replicator.ReplicaCount
 import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, Entity}
 import akka.cluster.sharding.typed.{ClusterShardingSettings, ShardingEnvelope}
 import akka.cluster.typed.{Join, Subscribe}
 import akka.remote.testconductor.RoleName
 import akka.remote.testkit.MultiNodeSpec
 import akka.testkit.ImplicitSender
-import application.ConnectionService.{ForwardMsg, SocketConnection}
+import application.ConnectionService.ForwardMsg
 import application.UserService.{AddConnection, DispatchCmd}
 import common.{MultiNodeSampleConfig, STMultiNodeSpec}
 import org.scalamock.scalatest.MockFactory
