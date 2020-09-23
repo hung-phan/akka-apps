@@ -1,5 +1,7 @@
-### Akka-apps
+# Akka-apps
+
+## Testing
 
 ```bash
-$ sbt run
+$ sbt test multi-jvm:test
 ```

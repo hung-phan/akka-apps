@@ -8,7 +8,8 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
-import scala.language.implicitConversions
+import scala.language.{implicitConversions, postfixOps}
+import scala.sys.process._
 
 /**
   * Hooks up MultiNodeSpec with ScalaTest
@@ -21,7 +22,11 @@ trait STMultiNodeSpec
   this: MultiNodeSpec =>
   override def beforeAll() = multiNodeSpecBeforeAll()
 
-  override def afterAll() = multiNodeSpecAfterAll()
+  override def afterAll() = {
+    multiNodeSpecAfterAll()
+    // remove all test_data
+    "rm -rf test_data" !
+  }
 
   // Might not be needed anymore if we find a nice way to tag all logging from a node
   override implicit def convertToWordSpecStringWrapper(

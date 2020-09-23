@@ -92,7 +92,6 @@ class UserServiceMultiNodeTest
           )
         }
       }
-      enterBarrier("registered connection")
 
       runOn(node3) {
         regionActorOption.map { regionActor =>
@@ -102,7 +101,6 @@ class UserServiceMultiNodeTest
           )
         }
       }
-      enterBarrier("forward command to all connections")
 
       runOn(node1, node2) {
         awaitAssert {
@@ -111,7 +109,6 @@ class UserServiceMultiNodeTest
           }
         }
       }
-      enterBarrier("relayed message from other servers")
     }
   }
 }

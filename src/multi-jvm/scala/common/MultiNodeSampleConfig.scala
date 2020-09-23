@@ -17,6 +17,6 @@ object MultiNodeSampleConfig extends MultiNodeConfig {
                                 |akka.cluster.log-info = off
                                 |akka.cluster.metrics.enabled=off
                                 |akka.log-dead-letters-during-shutdown = off
-    """.stripMargin).withFallback(ConfigFactory.load("application.conf"))
+    """.stripMargin).withFallback(ConfigFactory.load("test.conf"))
   )
 }

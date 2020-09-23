@@ -84,7 +84,6 @@ class ChatServiceMultiNodeTest
           region ! ShardingEnvelope(chatId, AddUser(user2))
         }
       }
-      enterBarrier("add two users")
 
       runOn(node2) {
         regionActorOption.map { region =>
@@ -98,7 +97,6 @@ class ChatServiceMultiNodeTest
           )
         }
       }
-      enterBarrier("send chat messages")
 
       runOn(node3) {
         regionActorOption.map { region =>
@@ -124,8 +122,6 @@ class ChatServiceMultiNodeTest
           }
         }
       }
-
-      enterBarrier("queried the chat state")
     }
   }
 }

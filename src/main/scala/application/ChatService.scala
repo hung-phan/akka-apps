@@ -82,7 +82,7 @@ object ChatService {
         Effect.none
 
       case Terminate =>
-        Effect.stop()
+        Effect.stop
     }
   }
 
