@@ -4,14 +4,14 @@ import domain.common.{Entity, ID, MsgType}
 import domain.model.UserModel.UserEntity
 
 object ChatModel {
-  sealed trait ChatLogEntity extends Entity[String] {
+  sealed trait ChatLogEntity {
     type MessageType
 
-    val from: UserEntity
     val msg: MsgType[MessageType]
   }
+  sealed trait ChatStateEntity extends Entity[String]
 
-  case class TextChatLog(id: ID[String], msg: MsgType[String], from: UserEntity)
+  case class TextChatLog(msg: MsgType[String], from: UserEntity)
       extends ChatLogEntity {
     override type MessageType = String
   }
@@ -23,7 +23,7 @@ object ChatModel {
       users: Set[UserEntity],
       previousMsgs: List[ChatLogEntity],
       lastMsgs: List[ChatLogEntity]
-  ) extends Entity[String] {
+  ) extends ChatStateEntity {
     def addUser(user: UserEntity): ChatState =
       this.copy(users = users + user)
 

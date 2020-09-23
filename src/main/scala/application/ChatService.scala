@@ -15,18 +15,19 @@ import akka.persistence.typed.scaladsl.{
   RetentionCriteria
 }
 import domain.common.ID
-import domain.model.ChatModel.{ChatLogEntity, ChatState}
+import domain.model.ChatModel.{ChatLogEntity, ChatState, ChatStateEntity}
 import domain.model.UserModel.UserEntity
-import infrastructure.common.KryoSerializer
+import infrastructure.common.KryoSerializable
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
 object ChatService {
-  sealed trait Command extends KryoSerializer
+  sealed trait Command extends KryoSerializable
   case class AddUser(user: UserEntity) extends Command
   case class RemoveUser(user: UserEntity) extends Command
   case class AppendMsg(msg: ChatLogEntity) extends Command
+  case class QueryState(actor: ActorRef[ChatStateEntity]) extends Command
   case object ReceiveTimeout extends Command
   case object Terminate extends Command
 
@@ -47,7 +48,8 @@ object ChatService {
       EventSourcedBehavior[Command, Event, ChatState](
         persistenceId = PersistenceId.ofUniqueId(entityID),
         emptyState = ChatState(ID(entityID), Set.empty, List.empty, List.empty),
-        commandHandler = (_, command) => handleCommand(shard, ctx, command),
+        commandHandler =
+          (state, command) => handleCommand(state, ctx, shard, command),
         eventHandler = (state, event) => handleEvent(state, event)
       ).onPersistFailure(
           SupervisorStrategy.restartWithBackoff(1 second, 30 seconds, 0.2)
@@ -56,8 +58,9 @@ object ChatService {
     }
 
   private def handleCommand(
-      shard: ActorRef[ClusterSharding.ShardCommand],
+      state: ChatState,
       ctx: ActorContext[Command],
+      shard: ActorRef[ClusterSharding.ShardCommand],
       command: Command
   ): Effect[Event, ChatState] = {
     command match {
@@ -72,6 +75,10 @@ object ChatService {
 
       case ReceiveTimeout =>
         shard ! Passivate(ctx.self)
+        Effect.none
+
+      case QueryState(actor) =>
+        actor ! state
         Effect.none
 
       case Terminate =>

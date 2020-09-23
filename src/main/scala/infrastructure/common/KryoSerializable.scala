@@ -1,3 +1,3 @@
 package infrastructure.common
 
-trait KryoSerializer
+trait KryoSerializable

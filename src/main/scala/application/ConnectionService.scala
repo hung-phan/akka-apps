@@ -2,10 +2,10 @@ package application
 
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
-import infrastructure.common.KryoSerializer
+import infrastructure.common.KryoSerializable
 
 object ConnectionService {
-  sealed trait Command extends KryoSerializer
+  sealed trait Command extends KryoSerializable
   case class ForwardMsg(msg: String) extends Command
   case object Stop extends Command
 

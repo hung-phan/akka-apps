@@ -7,17 +7,16 @@ import akka.cluster.sharding.typed.scaladsl.{
   EntityRef,
   EntityTypeKey
 }
-import infrastructure.common.KryoSerializer
+import infrastructure.common.KryoSerializable
 
 object UserService {
-  sealed trait Command extends KryoSerializer
+  sealed trait Command extends KryoSerializable
   case class AddConnection(conn: ActorRef[ConnectionService.Command])
       extends Command
   case class RemoveConnection(conn: ActorRef[ConnectionService.Command])
       extends Command
   case class DispatchCmd(connectionCmd: ConnectionService.Command)
       extends Command
-  case object Print extends Command
 
   val TypeKey = EntityTypeKey[Command]("UserEntity")
 
@@ -45,10 +44,6 @@ object UserService {
           conns.foreach {
             _ ! cmd
           }
-          Behaviors.same
-
-        case Print =>
-          ctx.log.info(s"EntityID: $entityID")
           Behaviors.same
       }
     }
