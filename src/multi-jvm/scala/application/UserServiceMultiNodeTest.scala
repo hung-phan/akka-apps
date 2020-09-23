@@ -105,8 +105,10 @@ class UserServiceMultiNodeTest
       enterBarrier("forward command to all connections")
 
       runOn(node1, node2) {
-        connectionProbe.map { probe =>
-          probe.expectMessage(ForwardMsg(serializedData))
+        awaitAssert {
+          connectionProbe.map { probe =>
+            probe.expectMessage(ForwardMsg(serializedData))
+          }
         }
       }
       enterBarrier("relayed message from other servers")
