@@ -1,4 +1,4 @@
-package application.user
+package application
 
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
@@ -7,7 +7,7 @@ import akka.cluster.sharding.typed.scaladsl.{
   EntityRef,
   EntityTypeKey
 }
-import application.user.ConnectionService.SendClientMsg
+import application.ConnectionService.SendClientMsg
 import infrastructure.serializer.KryoSerializable
 
 object UserService {

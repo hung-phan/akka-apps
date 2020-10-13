@@ -1,4 +1,4 @@
-package application.user
+package application
 
 import akka.actor.typed.javadsl.ActorContext
 import akka.actor.typed.scaladsl.Behaviors
@@ -8,7 +8,7 @@ import akka.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage}
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Flow, MergeHub, Sink, Source}
 import akka.util.CompactByteString
-import domain.model.user.UserModel.UserEntity
+import domain.model.UserModel.UserEntity
 import infrastructure.serializer.KryoSerializable
 
 object ConnectionService {

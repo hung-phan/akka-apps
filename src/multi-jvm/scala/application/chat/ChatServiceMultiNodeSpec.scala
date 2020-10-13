@@ -9,11 +9,12 @@ import akka.cluster.typed.{Join, Subscribe}
 import akka.remote.testconductor.RoleName
 import akka.remote.testkit.MultiNodeSpec
 import akka.testkit.ImplicitSender
-import application.chat.ChatService.{AddUser, AppendMsg, QueryState}
+import application.ChatService
+import application.ChatService.{AddUser, AppendMsg, QueryState}
 import common.{MultiNodeSampleConfig, STMultiNodeSpec}
 import domain.common.{ID, MsgType}
-import domain.model.chat.ChatModel.{ChatState, ChatStateEntity, TextChatLog}
-import domain.model.user.UserModel.UserWithIdentityOnly
+import domain.model.ChatModel.{ChatState, ChatStateEntity, TextChatLog}
+import domain.model.UserModel.UserWithIdentityOnly
 
 import scala.concurrent.duration._
 import scala.language.postfixOps

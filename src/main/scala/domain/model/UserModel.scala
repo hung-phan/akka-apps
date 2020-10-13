@@ -1,4 +1,4 @@
-package domain.model.user
+package domain.model
 
 import domain.common.{Entity, ID}
 

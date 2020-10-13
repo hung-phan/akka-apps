@@ -9,8 +9,9 @@ import akka.cluster.typed.{Join, Subscribe}
 import akka.remote.testconductor.RoleName
 import akka.remote.testkit.MultiNodeSpec
 import akka.testkit.ImplicitSender
-import application.user.ConnectionService.SendClientMsg
-import application.user.UserService.{AddConn, Broadcast}
+import application.{ConnectionService, UserService}
+import application.ConnectionService.SendClientMsg
+import application.UserService.{AddConn, Broadcast}
 import common.{MultiNodeSampleConfig, STMultiNodeSpec}
 
 import scala.concurrent.duration._

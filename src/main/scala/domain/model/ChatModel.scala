@@ -1,7 +1,7 @@
-package domain.model.chat
+package domain.model
 
 import domain.common.{Entity, ID, MsgType}
-import domain.model.user.UserModel.UserEntity
+import domain.model.UserModel.UserEntity
 
 object ChatModel {
   sealed trait ChatStateEntity extends Entity[String]

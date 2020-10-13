@@ -1,6 +1,4 @@
-package application.common
-
-import akka.actor.typed.ActorSystem
+package application
 
 import scala.concurrent.duration._
 import scala.language.postfixOps

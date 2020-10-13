@@ -1,4 +1,4 @@
-package application.chat
+package application
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior, SupervisorStrategy}
@@ -15,8 +15,8 @@ import akka.persistence.typed.scaladsl.{
   RetentionCriteria
 }
 import domain.common.ID
-import domain.model.chat.ChatModel.{ChatLogEntity, ChatState, ChatStateEntity}
-import domain.model.user.UserModel.UserEntity
+import domain.model.ChatModel.{ChatLogEntity, ChatState, ChatStateEntity}
+import domain.model.UserModel.UserEntity
 import infrastructure.serializer.KryoSerializable
 
 import scala.concurrent.duration._
