@@ -1,4 +1,4 @@
-package application
+package application.user
 
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorRef
@@ -9,10 +9,9 @@ import akka.cluster.typed.{Join, Subscribe}
 import akka.remote.testconductor.RoleName
 import akka.remote.testkit.MultiNodeSpec
 import akka.testkit.ImplicitSender
-import application.ConnectionService.ForwardMsg
-import application.UserService.{AddConnection, DispatchCmd}
+import application.user.ConnectionService.SendClientMsg
+import application.user.UserService.{AddConn, Broadcast}
 import common.{MultiNodeSampleConfig, STMultiNodeSpec}
-import org.scalamock.scalatest.MockFactory
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -24,8 +23,7 @@ class UserServiceMultiJvm3 extends UserServiceMultiNodeTest
 class UserServiceMultiNodeTest
     extends MultiNodeSpec(MultiNodeSampleConfig)
     with STMultiNodeSpec
-    with ImplicitSender
-    with MockFactory {
+    with ImplicitSender {
 
   import MultiNodeSampleConfig._
 
@@ -88,7 +86,7 @@ class UserServiceMultiNodeTest
         } {
           region ! ShardingEnvelope(
             userId,
-            AddConnection(connectionProbe.ref)
+            AddConn(connectionProbe.ref)
           )
         }
       }
@@ -97,7 +95,7 @@ class UserServiceMultiNodeTest
         regionActorOption.map { regionActor =>
           regionActor ! ShardingEnvelope(
             userId,
-            DispatchCmd(ForwardMsg(serializedData))
+            Broadcast(serializedData)
           )
         }
       }
@@ -105,7 +103,7 @@ class UserServiceMultiNodeTest
       runOn(node1, node2) {
         awaitAssert {
           connectionProbe.map { probe =>
-            probe.expectMessage(ForwardMsg(serializedData))
+            probe.expectMessage(SendClientMsg(serializedData))
           }
         }
       }

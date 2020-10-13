@@ -1,15 +1,15 @@
-package domain.model
+package domain.model.chat
 
 import domain.common.{Entity, ID, MsgType}
-import domain.model.UserModel.UserEntity
+import domain.model.user.UserModel.UserEntity
 
 object ChatModel {
+  sealed trait ChatStateEntity extends Entity[String]
   sealed trait ChatLogEntity {
     type MessageType
 
     val msg: MsgType[MessageType]
   }
-  sealed trait ChatStateEntity extends Entity[String]
 
   case class TextChatLog(msg: MsgType[String], from: UserEntity)
       extends ChatLogEntity {

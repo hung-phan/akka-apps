@@ -5,6 +5,7 @@ version := "0.1"
 scalaVersion := "2.13.2"
 
 lazy val akkaVersion = "2.6.6"
+lazy val akkaHttpVersion = "10.2.1"
 lazy val jacksonVersion  = "3.6.6"
 lazy val kryoVersion  = "1.1.5"
 
@@ -12,10 +13,13 @@ libraryDependencies ++= Seq(
   //shapeless
   "com.chuusai" %% "shapeless" % "2.3.3",
   // akka
+  "com.typesafe.akka" %% "akka-stream-typed" % akkaVersion,
   "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
   "com.typesafe.akka" %% "akka-cluster-typed" % akkaVersion,
   "com.typesafe.akka" %% "akka-cluster-sharding-typed" % akkaVersion,
   "com.typesafe.akka" %% "akka-persistence-typed" % akkaVersion,
+  // akka http server
+  "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
   // kryo serializer
   "io.altoo" %% "akka-kryo-serialization" % kryoVersion,
   // local levelDB stores

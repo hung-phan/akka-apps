@@ -1,4 +1,4 @@
-package application
+package application.chat
 
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorRef
@@ -9,12 +9,11 @@ import akka.cluster.typed.{Join, Subscribe}
 import akka.remote.testconductor.RoleName
 import akka.remote.testkit.MultiNodeSpec
 import akka.testkit.ImplicitSender
-import application.ChatService.{AddUser, AppendMsg, QueryState}
+import application.chat.ChatService.{AddUser, AppendMsg, QueryState}
 import common.{MultiNodeSampleConfig, STMultiNodeSpec}
 import domain.common.{ID, MsgType}
-import domain.model.ChatModel.{ChatState, ChatStateEntity, TextChatLog}
-import domain.model.UserModel.UserWithIdentityOnly
-import org.scalamock.scalatest.MockFactory
+import domain.model.chat.ChatModel.{ChatState, ChatStateEntity, TextChatLog}
+import domain.model.user.UserModel.UserWithIdentityOnly
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -26,8 +25,7 @@ class ChatServiceMultiJvm3 extends ChatServiceMultiNodeTest
 class ChatServiceMultiNodeTest
     extends MultiNodeSpec(MultiNodeSampleConfig)
     with STMultiNodeSpec
-    with ImplicitSender
-    with MockFactory {
+    with ImplicitSender {
 
   import MultiNodeSampleConfig._
 
