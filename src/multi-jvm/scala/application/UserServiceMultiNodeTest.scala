@@ -1,4 +1,4 @@
-package application.user
+package application
 
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorRef
@@ -9,7 +9,6 @@ import akka.cluster.typed.{Join, Subscribe}
 import akka.remote.testconductor.RoleName
 import akka.remote.testkit.MultiNodeSpec
 import akka.testkit.ImplicitSender
-import application.{ConnectionService, UserService}
 import application.ConnectionService.SendClientMsg
 import application.UserService.{AddConn, Broadcast}
 import common.{MultiNodeSampleConfig, STMultiNodeSpec}

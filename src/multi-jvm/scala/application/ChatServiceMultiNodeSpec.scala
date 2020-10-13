@@ -1,4 +1,4 @@
-package application.chat
+package application
 
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorRef
@@ -9,7 +9,6 @@ import akka.cluster.typed.{Join, Subscribe}
 import akka.remote.testconductor.RoleName
 import akka.remote.testkit.MultiNodeSpec
 import akka.testkit.ImplicitSender
-import application.ChatService
 import application.ChatService.{AddUser, AppendMsg, QueryState}
 import common.{MultiNodeSampleConfig, STMultiNodeSpec}
 import domain.common.{ID, MsgType}
