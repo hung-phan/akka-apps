@@ -6,8 +6,8 @@ scalaVersion := "2.13.2"
 
 lazy val akkaVersion = "2.6.6"
 lazy val akkaHttpVersion = "10.2.1"
-lazy val jacksonVersion  = "3.6.6"
-lazy val kryoVersion  = "1.1.5"
+lazy val jacksonVersion = "3.6.6"
+lazy val kryoVersion = "1.1.5"
 
 libraryDependencies ++= Seq(
   //shapeless
@@ -27,8 +27,12 @@ libraryDependencies ++= Seq(
   // akka test kit
   "com.typesafe.akka" %% "akka-remote" % akkaVersion % Test,
   "com.typesafe.akka" %% "akka-testkit" % akkaVersion % Test,
+  "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test,
   "com.typesafe.akka" %% "akka-multi-node-testkit" % akkaVersion % Test,
   "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion % Test,
+  // akka http test kit
+  "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion % Test,
+  // test
   "org.scalatest" %% "scalatest" % "3.2.0" % Test,
   "org.scalamock" %% "scalamock" % "4.4.0" % Test,
   // aeron

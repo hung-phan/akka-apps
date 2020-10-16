@@ -1,19 +1,20 @@
 package application
 
-import akka.actor.typed.ActorSystem
-import akka.http.scaladsl.Http
+import akka.actor.typed.javadsl.ActorContext
+import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
-import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.Directives.{parameter, _}
+import akka.http.scaladsl.server.Route
 import akka.stream.Materializer
+import domain.common.ID
+import domain.model.UserModel.UserWithIdentityOnly
 
-import scala.concurrent.Future
 import scala.language.postfixOps
 
 class HttpService extends App {
-  def startServer(interface: String, port: Int)(implicit
-      system: ActorSystem[_],
+  def getRoutes(sharding: ClusterSharding, ctx: ActorContext[_])(implicit
       materializer: Materializer
-  ): Future[Http.ServerBinding] = {
+  ): Route = {
     val html =
       """
         |<!DOCTYPE html>
@@ -45,18 +46,22 @@ class HttpService extends App {
         |</html>
         |""".stripMargin
 
-    val routes =
-      (pathEndOrSingleSlash & get) {
-        complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, html))
+    (pathEndOrSingleSlash & get) {
+      complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, html))
+    } ~
+      path("ws") {
+        (parameter(Symbol("userIdentifier").as[String]) &
+          parameter(Symbol("protocol").as[String])) {
+          (userIdentity: String, protocol: String) =>
+            handleWebSocketMessages(
+              UserService.createWebSocketFlow(
+                UserService.getProtocol(protocol),
+                ctx,
+                UserWithIdentityOnly(ID(userIdentity)),
+                sharding
+              )
+            )
+        }
       }
-//      } ~
-//        (path("ws") | parameter(Symbol("userIdentifier").as[String])) {
-//          (userIdentity: String) =>
-////            handleWebSocketMessages()
-//        }
-
-    Http()
-      .newServerAt(interface, port)
-      .bindFlow(routes)
   }
 }

@@ -23,11 +23,13 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 object ChatService {
+  case class CurrentState(state: ChatState)
+
   sealed trait Command extends KryoSerializable
   case class AddUser(user: UserEntity) extends Command
   case class RemoveUser(user: UserEntity) extends Command
   case class AppendMsg(msg: ChatLogEntity) extends Command
-  case class QueryState(actor: ActorRef[ChatStateEntity]) extends Command
+  case class QueryState(ref: ActorRef[CurrentState]) extends Command
   case object ReceiveTimeout extends Command
   case object Terminate extends Command
 
@@ -63,8 +65,8 @@ object ChatService {
         shard ! Passivate(ctx.self)
         Effect.none
 
-      case QueryState(actor) =>
-        actor ! state
+      case QueryState(ref) =>
+        ref ! CurrentState(state)
         Effect.none
 
       case Terminate =>
