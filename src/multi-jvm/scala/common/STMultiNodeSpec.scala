@@ -46,9 +46,9 @@ trait STMultiNodeSpec
 
   implicit val typedSystem = system.toTyped
   implicit val materializer = Materializer(typedSystem)
+  implicit val sharding = ClusterSharding(typedSystem)
 
   lazy val cluster = Cluster(typedSystem)
-  lazy val sharding = ClusterSharding(typedSystem)
   lazy val testKit = ActorTestKit(typedSystem)
 
   def initialParticipants = roles.size

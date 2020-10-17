@@ -11,7 +11,7 @@ import application.ChatService.{AddUser, AppendMsg, CurrentState, QueryState}
 import common.{MultiNodeSampleConfig, STMultiNodeSpec}
 import domain.common.{ID, MsgType}
 import domain.model.ChatModel.{ChatState, TextChatLog}
-import domain.model.UserModel.UserWithIdentityOnly
+import domain.model.UserModel.UserIdentifier
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -57,8 +57,8 @@ class ChatServiceMultiNodeTest
     val chatId = "chat-1"
 
     "be able to update chat state" in within(15 seconds) {
-      val user1 = UserWithIdentityOnly(ID("user-1"))
-      val user2 = UserWithIdentityOnly(ID("user-2"))
+      val user1 = UserIdentifier(ID("user-1"))
+      val user2 = UserIdentifier(ID("user-2"))
 
       runOn(node1) {
         regionOpt.map { region =>
@@ -82,28 +82,31 @@ class ChatServiceMultiNodeTest
 
       runOn(node3) {
         regionOpt.map { region =>
-          awaitAssert {
-            val probe = TestProbe[CurrentState]()
+          awaitAssert(
+            {
+              val probe = TestProbe[CurrentState]()
 
-            region ! ShardingEnvelope(
-              chatId,
-              QueryState(probe.ref)
-            )
+              region ! ShardingEnvelope(
+                chatId,
+                QueryState(probe.ref)
+              )
 
-            probe.expectMessage(
-              CurrentState(
-                ChatState(
-                  ID("chat-1"),
-                  Set(user1, user2),
-                  List.empty,
-                  List(
-                    TextChatLog(MsgType("Hello from the other side"), user1),
-                    TextChatLog(MsgType("Hello there"), user2)
+              probe.expectMessage(
+                CurrentState(
+                  ChatState(
+                    ID("chat-1"),
+                    Set(user1, user2),
+                    List.empty,
+                    List(
+                      TextChatLog(MsgType("Hello from the other side"), user1),
+                      TextChatLog(MsgType("Hello there"), user2)
+                    )
                   )
                 )
               )
-            )
-          }
+            },
+            interval = 1 second
+          )
         }
       }
     }

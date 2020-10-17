@@ -45,11 +45,7 @@ class UserServiceMultiNodeTest
         startProxySharding(
           UserService.TypeKey,
           entityContext =>
-            UserService.User(
-              entityContext.entityId,
-              entityContext.shard,
-              List.empty
-            )
+            UserService.user(entityContext.entityId, entityContext.shard)
         )
       )
 
@@ -68,21 +64,24 @@ class UserServiceMultiNodeTest
         val sinkProbe = TestProbe[Message]()
 
         testKit.spawn(
-          UserService.UserConnection(
+          UserService.userConnection(
+            userId,
             UserService.TextProtocol,
-            user,
             Sink.foreach[Message](sinkProbe.ref ! _)
           )
         )
 
         val userProbe = TestProbe[UserService.CurrentState]
 
-        awaitAssert {
-          user ! UserService.QueryState(userProbe.ref)
+        awaitAssert(
+          {
+            user ! UserService.QueryState(userProbe.ref)
 
-          assert(userProbe.receiveMessage().conns.length == 2)
-          sinkProbe.expectMessage(TextMessage.Strict(serializedData))
-        }
+            assert(userProbe.receiveMessage().conns.length == 2)
+            sinkProbe.expectMessage(TextMessage.Strict(serializedData))
+          },
+          interval = 1 second
+        )
       }
 
       runOn(node3) {

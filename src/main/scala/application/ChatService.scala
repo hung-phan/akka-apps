@@ -15,7 +15,7 @@ import akka.persistence.typed.scaladsl.{
   RetentionCriteria
 }
 import domain.common.ID
-import domain.model.ChatModel.{ChatLogEntity, ChatState, ChatStateEntity}
+import domain.model.ChatModel.{ChatLogEntity, ChatState}
 import domain.model.UserModel.UserEntity
 import infrastructure.serializer.KryoSerializable
 
@@ -33,7 +33,7 @@ object ChatService {
   case object ReceiveTimeout extends Command
   case object Terminate extends Command
 
-  sealed trait Event
+  sealed trait Event extends KryoSerializable
   case class AddedUser(user: UserEntity) extends Event
   case class RemovedUser(user: UserEntity) extends Event
   case class AppendedMsg(smg: ChatLogEntity) extends Event
@@ -41,17 +41,17 @@ object ChatService {
   val TypeKey = EntityTypeKey[Command]("ChatEntity")
 
   def fromEntityRef(
-      entityID: String,
+      entityId: String,
       sharding: ClusterSharding
-  ): EntityRef[Command] = sharding.entityRefFor(TypeKey, entityID)
+  ): EntityRef[Command] = sharding.entityRefFor(TypeKey, entityId)
 
   private def handleCommand(
+      cmd: Command,
       state: ChatState,
       ctx: ActorContext[Command],
-      shard: ActorRef[ClusterSharding.ShardCommand],
-      command: Command
-  ): Effect[Event, ChatState] = {
-    command match {
+      shard: ActorRef[ClusterSharding.ShardCommand]
+  ): Effect[Event, ChatState] =
+    cmd match {
       case AddUser(user) =>
         Effect.persist(AddedUser(user))
 
@@ -61,20 +61,19 @@ object ChatService {
       case AppendMsg(msg) =>
         Effect.persist(AppendedMsg(msg))
 
-      case ReceiveTimeout =>
-        shard ! Passivate(ctx.self)
-        Effect.none
-
       case QueryState(ref) =>
         ref ! CurrentState(state)
+        Effect.none
+
+      case ReceiveTimeout =>
+        shard ! Passivate(ctx.self)
         Effect.none
 
       case Terminate =>
         Effect.stop
     }
-  }
 
-  private def handleEvent(state: ChatState, event: Event): ChatState = {
+  private def handleEvent(state: ChatState, event: Event): ChatState =
     event match {
       case AddedUser(user) =>
         state.addUser(user)
@@ -85,20 +84,19 @@ object ChatService {
       case AppendedMsg(msg) =>
         state.appendMsg(msg)
     }
-  }
 
   def apply(
-      entityID: String,
+      entityId: String,
       shard: ActorRef[ClusterSharding.ShardCommand]
   ): Behavior[Command] =
     Behaviors.setup { ctx =>
       ctx.setReceiveTimeout(5 minutes, ReceiveTimeout)
 
       EventSourcedBehavior[Command, Event, ChatState](
-        persistenceId = PersistenceId.ofUniqueId(entityID),
-        emptyState = ChatState(ID(entityID), Set.empty, List.empty, List.empty),
+        persistenceId = PersistenceId.ofUniqueId(entityId),
+        emptyState = ChatState(ID(entityId), Set.empty, List.empty, List.empty),
         commandHandler =
-          (state, command) => handleCommand(state, ctx, shard, command),
+          (state, command) => handleCommand(command, state, ctx, shard),
         eventHandler = (state, event) => handleEvent(state, event)
       ).onPersistFailure(
           SupervisorStrategy.restartWithBackoff(1 second, 30 seconds, 0.2)

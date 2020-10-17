@@ -1,19 +1,22 @@
 package application
 
-import akka.actor.typed.javadsl.ActorContext
+import akka.actor.ActorRefFactory
+import akka.actor.typed.scaladsl.ActorContext
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
+import akka.http.scaladsl.model.ws.Message
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
 import akka.http.scaladsl.server.Directives.{parameter, _}
 import akka.http.scaladsl.server.Route
 import akka.stream.Materializer
-import domain.common.ID
-import domain.model.UserModel.UserWithIdentityOnly
+import akka.stream.scaladsl.{Flow, MergeHub, Sink}
+import application.UserService.{HandleClientMsg, userConnection}
 
 import scala.language.postfixOps
 
-class HttpService extends App {
-  def getRoutes(sharding: ClusterSharding, ctx: ActorContext[_])(implicit
-      materializer: Materializer
+object HttpService {
+  def getRoutes(ctx: ActorContext[_])(implicit
+      materializer: Materializer,
+      sharding: ClusterSharding
   ): Route = {
     val html =
       """
@@ -49,19 +52,26 @@ class HttpService extends App {
     (pathEndOrSingleSlash & get) {
       complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, html))
     } ~
-      path("ws") {
-        (parameter(Symbol("userIdentifier").as[String]) &
-          parameter(Symbol("protocol").as[String])) {
-          (userIdentity: String, protocol: String) =>
-            handleWebSocketMessages(
-              UserService.createWebSocketFlow(
-                UserService.getProtocol(protocol),
-                ctx,
-                UserWithIdentityOnly(ID(userIdentity)),
-                sharding
-              )
-            )
-        }
+      (path("ws") & parameter(
+        Symbol("protocol").as[String],
+        Symbol("userIdentifier").as[String]
+      )) { (protocol: String, userIdentity: String) =>
+        val source = MergeHub.source[Message]
+        val conn = ctx.spawn(
+          userConnection(
+            userIdentity,
+            UserService.getProtocol(protocol),
+            source.to(Sink.ignore).run()
+          ),
+          s"UserConnection(${userIdentity})"
+        )
+
+        handleWebSocketMessages(
+          Flow.fromSinkAndSource(
+            Sink.foreach[Message](conn ! HandleClientMsg(_)),
+            source
+          )
+        )
       }
   }
 }
