@@ -26,7 +26,7 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 object UserService {
-  case class CurrentState(conns: List[ActorRef[ConnectionCommand]])
+  case class CurrentState(conns: Set[ActorRef[ConnectionCommand]])
 
   sealed trait ConnectionProtocol extends KryoSerializable
   case object TextProtocol extends ConnectionProtocol
@@ -66,15 +66,17 @@ object UserService {
   ): Effect[UserEvent, UserConnections[ConnectionCommand]] =
     cmd match {
       case AddConn(conn) =>
-        state.conns.find(conn == _) match {
-          case Some(_) => Effect.none
-          case None    => Effect.persist(AddedConn(conn))
+        if (state.conns.contains(conn)) {
+          Effect.none
+        } else {
+          Effect.persist(AddedConn(conn))
         }
 
       case RemoveConn(conn) =>
-        state.conns.find(conn == _) match {
-          case Some(_) => Effect.persist(RemovedConn(conn))
-          case None    => Effect.none
+        if (state.conns.contains(conn)) {
+          Effect.persist(RemovedConn(conn))
+        } else {
+          Effect.none
         }
 
       case QueryState(ref) =>
@@ -103,10 +105,10 @@ object UserService {
   ): UserConnections[ConnectionCommand] =
     event match {
       case AddedConn(conn) =>
-        state.copy(conns = conn :: state.conns)
+        state.copy(conns = state.conns + conn)
 
       case RemovedConn(conn) =>
-        state.copy(conns = state.conns.filter(conn != _))
+        state.copy(conns = state.conns - conn)
     }
 
   def user(
@@ -120,7 +122,7 @@ object UserService {
         ConnectionCommand
       ]](
         persistenceId = PersistenceId.ofUniqueId(entityId),
-        emptyState = UserConnections(ID(entityId), List.empty),
+        emptyState = UserConnections(ID(entityId), Set.empty),
         commandHandler =
           (state, command) => handleUserCommand(command, state, ctx, shard),
         eventHandler = (state, event) => handleUserEvent(state, event)

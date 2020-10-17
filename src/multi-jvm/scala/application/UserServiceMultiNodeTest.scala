@@ -77,7 +77,7 @@ class UserServiceMultiNodeTest
           {
             user ! UserService.QueryState(userProbe.ref)
 
-            assert(userProbe.receiveMessage().conns.length == 2)
+            assert(userProbe.receiveMessage().conns.size == 2)
             sinkProbe.expectMessage(TextMessage.Strict(serializedData))
           },
           interval = 1 second
