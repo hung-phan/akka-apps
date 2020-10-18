@@ -4,6 +4,7 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.cluster.sharding.typed.ShardingEnvelope
 import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, Entity}
+import akka.http.scaladsl.Http
 import akka.stream.Materializer
 import infrastructure.serializer.KryoSerializable
 
@@ -12,7 +13,8 @@ object MainSystem {
 
   def apply(): Behavior[Command] =
     Behaviors.setup { ctx =>
-      implicit val materializer = Materializer(ctx.system)
+      implicit val system = ctx.system
+      implicit val materializer = Materializer(system)
 
       lazy val sharding = ClusterSharding(ctx.system)
       lazy val userShardRegion
@@ -30,6 +32,10 @@ object MainSystem {
           ).withStopMessage(ChatService.Terminate)
         )
       }
+
+      Http()
+        .newServerAt("localhost", 3000)
+        .bindFlow(HttpService.getRoutes(ctx, userShardRegion))
 
       Behaviors.unhandled
     }

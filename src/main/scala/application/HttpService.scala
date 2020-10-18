@@ -62,4 +62,10 @@ object HttpService {
         UserService.createWsFlow(protocol, userId, ctx, userShardRegion)
       )
     }
+
+  def getRoutes(
+      ctx: ActorContext[_],
+      userShardRegion: ActorRef[ShardingEnvelope[UserCommand]]
+  )(implicit materializer: Materializer): Route =
+    getMainPageRoute() ~ getWebsocketRoute(ctx, userShardRegion)
 }
