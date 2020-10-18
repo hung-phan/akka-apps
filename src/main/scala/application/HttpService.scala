@@ -1,15 +1,19 @@
 package application
 
-import akka.actor.typed.ActorRef
-import akka.actor.typed.scaladsl.ActorContext
-import akka.cluster.sharding.typed.ShardingEnvelope
-import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
-import akka.http.scaladsl.server.Directives.{parameter, _}
+import akka.actor.typed.{ActorRef, ActorSystem, Scheduler}
+import akka.http.scaladsl.model.{
+  AttributeKeys,
+  ContentTypes,
+  HttpEntity,
+  StatusCodes
+}
+import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import akka.stream.Materializer
-import application.UserService.UserCommand
+import akka.http.scaladsl.server.directives.RouteDirectives.complete
 
+import scala.concurrent.ExecutionContext
 import scala.language.postfixOps
+import scala.util.{Failure, Success}
 
 object HttpService {
   private def getMainPageRoute(): Route =
@@ -27,7 +31,7 @@ object HttpService {
           |<body>
           |<div id="content"></div>
           |<script>
-          |  const exampleSocket = new WebSocket("ws://localhost:3000/ws");
+          |  const exampleSocket = new WebSocket("ws://localhost:3000/ws?userid=1");
           |
           |  console.log("starting websocket...");
           |
@@ -51,21 +55,41 @@ object HttpService {
     }
 
   private def getWebsocketRoute(
-      ctx: ActorContext[_],
-      userShardRegion: ActorRef[ShardingEnvelope[UserCommand]]
-  )(implicit materializer: Materializer): Route =
-    (path("ws") & parameter(
-      Symbol("protocol").as[String],
-      Symbol("userId").as[String]
-    )) { (protocol: String, userId: String) =>
-      handleWebSocketMessages(
-        UserService.createWsFlow(protocol, userId, ctx, userShardRegion)
-      )
+      guardian: ActorRef[MainSystem.Command]
+  )(implicit
+      system: ActorSystem[_],
+      ec: ExecutionContext,
+      scheduler: Scheduler
+  ): Route = {
+    path("ws") {
+      extractRequestContext { reqCtx =>
+        parameters("userid", "protocol".withDefault("text")) {
+          (userId, protocol) =>
+            reqCtx.request.attribute(AttributeKeys.webSocketUpgrade) match {
+              case Some(upgrade) =>
+                onComplete(
+                  UserService.createWsFlow(protocol, userId, guardian)
+                ) {
+                  case Success(flow) => complete(upgrade.handleMessages(flow))
+                  case Failure(ex)   => failWith(ex)
+                }
+              case None =>
+                complete(
+                  StatusCodes.BadRequest,
+                  "Not a valid websocket request!"
+                )
+            }
+        }
+      }
     }
+  }
 
   def getRoutes(
-      ctx: ActorContext[_],
-      userShardRegion: ActorRef[ShardingEnvelope[UserCommand]]
-  )(implicit materializer: Materializer): Route =
-    getMainPageRoute() ~ getWebsocketRoute(ctx, userShardRegion)
+      guardian: ActorRef[MainSystem.Command]
+  )(implicit
+      system: ActorSystem[_],
+      ec: ExecutionContext,
+      scheduler: Scheduler
+  ): Route =
+    getMainPageRoute() ~ getWebsocketRoute(guardian)
 }

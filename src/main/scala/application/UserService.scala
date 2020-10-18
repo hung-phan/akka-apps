@@ -1,7 +1,8 @@
 package application
 
+import akka.actor.typed._
+import akka.actor.typed.scaladsl.AskPattern.Askable
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
-import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
 import akka.cluster.sharding.typed.ShardingEnvelope
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding.Passivate
 import akka.cluster.sharding.typed.scaladsl.{
@@ -19,12 +20,13 @@ import akka.persistence.typed.scaladsl.{
 import akka.stream.scaladsl.{Flow, GraphDSL}
 import akka.stream.typed.scaladsl.{ActorSink, ActorSource}
 import akka.stream.{FlowShape, Materializer, OverflowStrategy}
-import akka.util.CompactByteString
+import akka.util.{CompactByteString, Timeout}
 import domain.common.ID
 import domain.model.UserModel.UserConnections
 import infrastructure.serializer.KryoSerializable
 
 import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
 object UserService {
@@ -90,7 +92,7 @@ object UserService {
         Effect.none
 
       case ProcessMsg(msg, _) =>
-        ctx.log.info(msg)
+        state.sockets.foreach { _ ! DispatchMsgToUser(s"Reply from server: ${msg}") }
         Effect.none
 
       case ReceiveTimeout =>
@@ -189,49 +191,58 @@ object UserService {
   def createWsFlow(
       protocol: String,
       userId: String,
-      ctx: ActorContext[_],
-      userShardRegion: ActorRef[ShardingEnvelope[UserCommand]]
-  )(implicit materializer: Materializer): Flow[Message, Message, _] = {
+      mainSystem: ActorRef[MainSystem.Command]
+  )(implicit
+      system: ActorSystem[_],
+      ec: ExecutionContext,
+      scheduler: Scheduler
+  ): Future[Flow[Message, Message, _]] = {
+    implicit val timeout = Timeout(5 seconds)
+
     val (socket, socketSource) = ActorSource
       .actorRef[UserSocketCommand](
         completionMatcher = { case SocketDisconnect => },
         failureMatcher = { case SocketFailure(ex) => throw ex },
         bufferSize = 16,
-        OverflowStrategy.backpressure
+        OverflowStrategy.fail
       )
       .preMaterialize()
 
-    val conn =
-      ctx.spawnAnonymous(userSocket(userId, socket, userShardRegion))
-
-    Flow.fromGraph(
-      GraphDSL.create(socketSource) { implicit builder => socket =>
-        import GraphDSL.Implicits._
-
-        // transforms messages from the websockets into the actor's protocol
-        val webSocketSource = builder.add(UserService.wsDeserializerFlow)
-
-        // transform a message from the WebSocketProtocol back into a websocket text message
-        val webSocketSink = builder.add(protocol match {
-          case "text"   => wsTextSerializerFlow
-          case "binary" => wsBinarySerializerFlow
-        })
-
-        // route messages to the session actor
-        val forwardMsgToConn = builder.add(
-          ActorSink.actorRef[UserService.UserSocketCommand](
-            ref = conn,
-            onCompleteMessage = UserService.SocketDisconnect,
-            onFailureMessage = UserService.SocketFailure.apply
-          )
-        )
-
-        // ~> connects everything
-        webSocketSource ~> forwardMsgToConn
-        socket ~> webSocketSink
-
-        FlowShape(webSocketSource.in, webSocketSink.out)
-      }
+    val connPromise = mainSystem ? (replyTo =>
+      MainSystem.CreateUserSocket(userId, socket, replyTo)
     )
+
+    connPromise.map {
+      case MainSystem.CreateUserSocketResp(conn) =>
+        Flow.fromGraph(
+          GraphDSL.create(socketSource) { implicit builder => socket =>
+            import GraphDSL.Implicits._
+
+            // transforms messages from the websockets into the actor's protocol
+            val webSocketSource = builder.add(UserService.wsDeserializerFlow)
+
+            // transform a message from the WebSocketProtocol back into a websocket text message
+            val webSocketSink = builder.add(protocol match {
+              case "text"   => wsTextSerializerFlow
+              case "binary" => wsBinarySerializerFlow
+            })
+
+            // route messages to the session actor
+            val forwardMsgToConn = builder.add(
+              ActorSink.actorRef[UserService.UserSocketCommand](
+                ref = conn,
+                onCompleteMessage = UserService.SocketDisconnect,
+                onFailureMessage = UserService.SocketFailure.apply
+              )
+            )
+
+            // ~> connects everything
+            webSocketSource ~> forwardMsgToConn
+            socket ~> webSocketSink
+
+            FlowShape(webSocketSource.in, webSocketSink.out)
+          }
+        )
+    }
   }
 }
