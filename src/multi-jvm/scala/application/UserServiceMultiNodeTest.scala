@@ -5,9 +5,7 @@ import akka.actor.typed.ActorRef
 import akka.cluster.ClusterEvent.{ClusterDomainEvent, MemberUp}
 import akka.cluster.sharding.typed.ShardingEnvelope
 import akka.cluster.typed.Subscribe
-import akka.http.scaladsl.model.ws.{Message, TextMessage}
 import akka.remote.testkit.MultiNodeSpec
-import akka.stream.scaladsl.Sink
 import akka.testkit.ImplicitSender
 import common.{MultiNodeSampleConfig, STMultiNodeSpec}
 
@@ -58,34 +56,55 @@ class UserServiceMultiNodeTest
       15 seconds
     ) {
       val serializedData = "[1, 2, 3]"
-      val user = UserService.fromEntityRef(userId, sharding)
+      var downstreamProbeOpt: Option[TestProbe[UserService.UserSocketCommand]] =
+        None
 
       runOn(node1, node2) {
-        val sinkProbe = TestProbe[Message]()
+        downstreamProbeOpt = Some(TestProbe[UserService.UserSocketCommand]())
 
-        testKit.spawn(
-          UserService.userConnection(
-            userId,
-            UserService.TextProtocol,
-            Sink.foreach[Message](sinkProbe.ref ! _)
+        for {
+          region <- regionOpt
+          downstreamProbe <- downstreamProbeOpt
+        } {
+          testKit.spawn(
+            UserService.userSocket(userId, downstreamProbe.ref, region)
           )
-        )
 
-        val userProbe = TestProbe[UserService.CurrentState]
+          awaitAssert(
+            {
+              val userProbe = TestProbe[UserService.QueryStateResp]
 
-        awaitAssert(
-          {
-            user ! UserService.QueryState(userProbe.ref)
+              region ! ShardingEnvelope(
+                userId,
+                UserService.QueryState(userProbe.ref)
+              )
 
-            assert(userProbe.receiveMessage().conns.size == 2)
-            sinkProbe.expectMessage(TextMessage.Strict(serializedData))
-          },
-          interval = 1 second
-        )
+              assert(userProbe.receiveMessage().sockets.size == 2)
+            },
+            interval = 1 second
+          )
+        }
+      }
+
+      enterBarrier("wait for socket to be added to user actor")
+
+      runOn(node1, node2) {
+        downstreamProbeOpt.foreach { downstreamProbe =>
+          awaitAssert {
+            downstreamProbe.expectMessage(
+              UserService.DispatchMsgToUser(serializedData)
+            )
+          }
+        }
       }
 
       runOn(node3) {
-        user ! UserService.Broadcast(serializedData)
+        regionOpt.foreach { region =>
+          region ! ShardingEnvelope(
+            userId,
+            UserService.BroadcastMsg(serializedData)
+          )
+        }
       }
     }
   }

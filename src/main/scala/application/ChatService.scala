@@ -23,15 +23,16 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 object ChatService {
-  case class CurrentState(state: ChatState)
-
   sealed trait Command extends KryoSerializable
   case class AddUser(user: UserEntity) extends Command
   case class RemoveUser(user: UserEntity) extends Command
   case class AppendMsg(msg: ChatLogEntity) extends Command
-  case class QueryState(ref: ActorRef[CurrentState]) extends Command
+  case class QueryState(ref: ActorRef[QueryStateResp]) extends Command
   case object ReceiveTimeout extends Command
   case object Terminate extends Command
+
+  sealed trait CommandResp extends KryoSerializable
+  case class QueryStateResp(state: ChatState) extends CommandResp
 
   sealed trait Event extends KryoSerializable
   case class AddedUser(user: UserEntity) extends Event
@@ -62,7 +63,7 @@ object ChatService {
         Effect.persist(AppendedMsg(msg))
 
       case QueryState(ref) =>
-        ref ! CurrentState(state)
+        ref ! QueryStateResp(state)
         Effect.none
 
       case ReceiveTimeout =>

@@ -2,6 +2,7 @@ package application
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
+import akka.cluster.sharding.typed.ShardingEnvelope
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding.Passivate
 import akka.cluster.sharding.typed.scaladsl.{
   ClusterSharding,
@@ -15,8 +16,9 @@ import akka.persistence.typed.scaladsl.{
   EventSourcedBehavior,
   RetentionCriteria
 }
-import akka.stream.Materializer
-import akka.stream.scaladsl.{Sink, Source}
+import akka.stream.scaladsl.{Flow, GraphDSL}
+import akka.stream.typed.scaladsl.{ActorSink, ActorSource}
+import akka.stream.{FlowShape, Materializer, OverflowStrategy}
 import akka.util.CompactByteString
 import domain.common.ID
 import domain.model.UserModel.UserConnections
@@ -26,30 +28,30 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 object UserService {
-  case class CurrentState(conns: Set[ActorRef[ConnectionCommand]])
-
-  sealed trait ConnectionProtocol extends KryoSerializable
-  case object TextProtocol extends ConnectionProtocol
-  case object BinaryProtocol extends ConnectionProtocol
-
-  sealed trait ConnectionCommand extends KryoSerializable
-  case class HandleClientMsg(msg: Message) extends ConnectionCommand
-  case class SendClientMsg(msg: String) extends ConnectionCommand
-  case object Stop extends ConnectionCommand
-
   sealed trait UserCommand extends KryoSerializable
-  case class AddConn(conn: ActorRef[ConnectionCommand]) extends UserCommand
-  case class RemoveConn(conn: ActorRef[ConnectionCommand]) extends UserCommand
-  case class Broadcast(msg: String) extends UserCommand
-  case class Process(msg: String, replyTo: ActorRef[ConnectionCommand])
+  case class AddSocket(socket: ActorRef[UserSocketCommand]) extends UserCommand
+  case class RemoveSocket(socket: ActorRef[UserSocketCommand])
       extends UserCommand
-  case class QueryState(ref: ActorRef[CurrentState]) extends UserCommand
+  case class BroadcastMsg(msg: String) extends UserCommand
+  case class ProcessMsg(msg: String, replyTo: ActorRef[UserSocketCommand])
+      extends UserCommand
+  case class QueryState(ref: ActorRef[QueryStateResp]) extends UserCommand
   case object ReceiveTimeout extends UserCommand
   case object Terminate extends UserCommand
 
+  sealed trait UserCommandResp extends KryoSerializable
+  case class QueryStateResp(sockets: Set[ActorRef[UserSocketCommand]])
+      extends UserCommandResp
+
   sealed trait UserEvent extends KryoSerializable
-  case class AddedConn(conn: ActorRef[ConnectionCommand]) extends UserEvent
-  case class RemovedConn(conn: ActorRef[ConnectionCommand]) extends UserEvent
+  case class AddedConn(conn: ActorRef[UserSocketCommand]) extends UserEvent
+  case class RemovedConn(conn: ActorRef[UserSocketCommand]) extends UserEvent
+
+  sealed trait UserSocketCommand
+  case class ProcessSocketMsg(msg: String) extends UserSocketCommand
+  case class DispatchMsgToUser(msg: String) extends UserSocketCommand
+  case object SocketDisconnect extends UserSocketCommand
+  case class SocketFailure(ex: Throwable) extends UserSocketCommand
 
   val TypeKey = EntityTypeKey[UserCommand]("UserEntity")
 
@@ -60,34 +62,34 @@ object UserService {
 
   private def handleUserCommand(
       cmd: UserCommand,
-      state: UserConnections[ConnectionCommand],
+      state: UserConnections[UserSocketCommand],
       ctx: ActorContext[UserCommand],
       shard: ActorRef[ClusterSharding.ShardCommand]
-  ): Effect[UserEvent, UserConnections[ConnectionCommand]] =
+  ): Effect[UserEvent, UserConnections[UserSocketCommand]] =
     cmd match {
-      case AddConn(conn) =>
-        if (state.conns.contains(conn)) {
+      case AddSocket(conn) =>
+        if (state.sockets.contains(conn)) {
           Effect.none
         } else {
           Effect.persist(AddedConn(conn))
         }
 
-      case RemoveConn(conn) =>
-        if (state.conns.contains(conn)) {
+      case RemoveSocket(conn) =>
+        if (state.sockets.contains(conn)) {
           Effect.persist(RemovedConn(conn))
         } else {
           Effect.none
         }
 
       case QueryState(ref) =>
-        ref ! CurrentState(state.conns)
+        ref ! QueryStateResp(state.sockets)
         Effect.none
 
-      case Broadcast(msg) =>
-        state.conns.foreach { _ ! SendClientMsg(msg) }
+      case BroadcastMsg(msg) =>
+        state.sockets.foreach { _ ! DispatchMsgToUser(msg) }
         Effect.none
 
-      case Process(msg, _) =>
+      case ProcessMsg(msg, _) =>
         ctx.log.info(msg)
         Effect.none
 
@@ -100,15 +102,15 @@ object UserService {
     }
 
   private def handleUserEvent(
-      state: UserConnections[ConnectionCommand],
+      state: UserConnections[UserSocketCommand],
       event: UserEvent
-  ): UserConnections[ConnectionCommand] =
+  ): UserConnections[UserSocketCommand] =
     event match {
       case AddedConn(conn) =>
-        state.copy(conns = state.conns + conn)
+        state.copy(sockets = state.sockets + conn)
 
       case RemovedConn(conn) =>
-        state.copy(conns = state.conns - conn)
+        state.copy(sockets = state.sockets - conn)
     }
 
   def user(
@@ -119,7 +121,7 @@ object UserService {
       ctx.setReceiveTimeout(5 minutes, ReceiveTimeout)
 
       EventSourcedBehavior[UserCommand, UserEvent, UserConnections[
-        ConnectionCommand
+        UserSocketCommand
       ]](
         persistenceId = PersistenceId.ofUniqueId(entityId),
         emptyState = UserConnections(ID(entityId), Set.empty),
@@ -132,62 +134,104 @@ object UserService {
         .withRetention(RetentionCriteria.snapshotEvery(20, 1))
     }
 
-  private val msgDeserializer: PartialFunction[Message, String] = {
-    case tm: TextMessage.Strict   => tm.text
-    case bm: BinaryMessage.Strict => bm.data.utf8String
-  }
-
-  private def msgSerializer(
-      protocol: ConnectionProtocol,
-      msg: String
-  ): Message =
-    protocol match {
-      case TextProtocol =>
-        TextMessage.Strict(msg)
-      case BinaryProtocol =>
-        BinaryMessage(CompactByteString(msg.toByte))
-    }
-
-  def getProtocol(protocol: String): ConnectionProtocol =
-    protocol match {
-      case "text"   => TextProtocol
-      case "binary" => BinaryProtocol
-    }
-
-  def userConnection(
+  def userSocket(
       entityId: String,
-      protocol: ConnectionProtocol,
-      outputSink: Sink[Message, _]
-  )(implicit
-      sharding: ClusterSharding,
-      materializer: Materializer
-  ): Behavior[ConnectionCommand] = {
+      downstream: ActorRef[UserSocketCommand],
+      userShardRegion: ActorRef[ShardingEnvelope[UserCommand]]
+  )(implicit materializer: Materializer): Behavior[UserSocketCommand] = {
     Behaviors.setup { ctx =>
-      val user = UserService.fromEntityRef(entityId, sharding)
-
-      user ! AddConn(ctx.self)
+      userShardRegion ! ShardingEnvelope(entityId, AddSocket(ctx.self))
 
       Behaviors
-        .receiveMessagePartial[ConnectionCommand] {
-          case HandleClientMsg(msg) =>
-            user ! Process(msgDeserializer(msg), ctx.self)
+        .receiveMessagePartial[UserSocketCommand] {
+          case ProcessSocketMsg(msg) =>
+            userShardRegion ! ShardingEnvelope(
+              entityId,
+              ProcessMsg(msg, ctx.self)
+            )
             Behaviors.same
 
-          case SendClientMsg(msg) =>
-            Source
-              .single(msg)
-              .map { msgSerializer(protocol, _) }
-              .runWith(outputSink)
+          case DispatchMsgToUser(msg) =>
+            downstream ! DispatchMsgToUser(msg)
             Behaviors.same
 
-          case Stop =>
+          case SocketDisconnect =>
             Behaviors.stopped
+
+          case SocketFailure(ex) =>
+            throw ex
         }
         .receiveSignal {
           case (ctx, PostStop) =>
-            user ! RemoveConn(ctx.self)
+            userShardRegion ! ShardingEnvelope(entityId, RemoveSocket(ctx.self))
             Behaviors.ignore
         }
     }
+  }
+
+  val wsDeserializerFlow: Flow[Message, UserSocketCommand, _] = Flow[Message]
+    .collect[UserSocketCommand] {
+      case TextMessage.Strict(txt)    => ProcessSocketMsg(txt)
+      case BinaryMessage.Strict(data) => ProcessSocketMsg(data.utf8String)
+    }
+
+  private val wsTextSerializerFlow = Flow[UserSocketCommand]
+    .collect[Message] {
+      case DispatchMsgToUser(msg) => TextMessage.Strict(msg)
+    }
+
+  private val wsBinarySerializerFlow = Flow[UserSocketCommand]
+    .collect[Message] {
+      case DispatchMsgToUser(msg) =>
+        BinaryMessage(CompactByteString(msg.toByte))
+    }
+
+  def createWsFlow(
+      protocol: String,
+      userId: String,
+      ctx: ActorContext[_],
+      userShardRegion: ActorRef[ShardingEnvelope[UserCommand]]
+  )(implicit materializer: Materializer): Flow[Message, Message, _] = {
+    val (socket, socketSource) = ActorSource
+      .actorRef[UserSocketCommand](
+        completionMatcher = { case SocketDisconnect => },
+        failureMatcher = { case SocketFailure(ex) => throw ex },
+        bufferSize = 16,
+        OverflowStrategy.backpressure
+      )
+      .preMaterialize()
+
+    val conn =
+      ctx.spawnAnonymous(userSocket(userId, socket, userShardRegion))
+
+    Flow.fromGraph(
+      GraphDSL.create(socketSource) { implicit builder => socket =>
+        import GraphDSL.Implicits._
+
+        // transforms messages from the websockets into the actor's protocol
+        val webSocketSource = builder.add(UserService.wsDeserializerFlow)
+
+        // transform a message from the WebSocketProtocol back into a websocket text message
+        val webSocketSink = builder.add(protocol match {
+          case "text"   => wsTextSerializerFlow
+          case "binary" => wsBinarySerializerFlow
+        })
+
+        // route messages to the session actor
+        val forwardMsgToConn = builder.add(
+          ActorSink.actorRef[UserService.UserSocketCommand](
+            ref = conn,
+            onCompleteMessage = UserService.SocketDisconnect,
+            onFailureMessage = UserService.SocketFailure.apply
+          )
+        )
+
+        // ~> connects everything
+        webSocketSource ~> forwardMsgToConn
+        socket ~> webSocketSink
+
+        FlowShape(webSocketSource.in, webSocketSink.out)
+      }
+    )
   }
 }

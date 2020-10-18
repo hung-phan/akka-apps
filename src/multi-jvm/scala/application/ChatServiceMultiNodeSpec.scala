@@ -7,7 +7,7 @@ import akka.cluster.sharding.typed.ShardingEnvelope
 import akka.cluster.typed.Subscribe
 import akka.remote.testkit.MultiNodeSpec
 import akka.testkit.ImplicitSender
-import application.ChatService.{AddUser, AppendMsg, CurrentState, QueryState}
+import application.ChatService.{AddUser, AppendMsg, QueryStateResp, QueryState}
 import common.{MultiNodeSampleConfig, STMultiNodeSpec}
 import domain.common.{ID, MsgType}
 import domain.model.ChatModel.{ChatState, TextChatLog}
@@ -84,7 +84,7 @@ class ChatServiceMultiNodeTest
         regionOpt.map { region =>
           awaitAssert(
             {
-              val probe = TestProbe[CurrentState]()
+              val probe = TestProbe[QueryStateResp]()
 
               region ! ShardingEnvelope(
                 chatId,
@@ -92,7 +92,7 @@ class ChatServiceMultiNodeTest
               )
 
               probe.expectMessage(
-                CurrentState(
+                QueryStateResp(
                   ChatState(
                     ID("chat-1"),
                     Set(user1, user2),

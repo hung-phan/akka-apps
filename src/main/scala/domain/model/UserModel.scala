@@ -8,6 +8,6 @@ object UserModel {
 
   case class UserIdentifier(id: ID[String]) extends UserEntity
   case class UserInfos(id: ID[String], name: String) extends UserEntity
-  case class UserConnections[T](id: ID[String], conns: Set[ActorRef[T]])
+  case class UserConnections[T](id: ID[String], sockets: Set[ActorRef[T]])
       extends UserEntity
 }
