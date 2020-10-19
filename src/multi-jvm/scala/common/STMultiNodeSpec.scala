@@ -35,7 +35,7 @@ trait STMultiNodeSpec
   override def afterAll() = {
     multiNodeSpecAfterAll()
     // remove all test_data
-    "rm -rf test_data" !
+    "rm -rf test_data test_ddata" !
   }
 
   // Might not be needed anymore if we find a nice way to tag all logging from a node
