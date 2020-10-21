@@ -76,12 +76,7 @@ object MainSystem extends App {
   val system = ActorSystem(
     guardian(),
     "ChatSystem",
-    sys.env.getOrElse("env", "prod") match {
-      case "dev" =>
-        ConfigFactory.load("development.conf")
-      case "prod" =>
-        ConfigFactory.load("application.conf")
-    }
+    ConfigFactory.load()
   )
 
   CoordinatedShutdown(system).addTask(

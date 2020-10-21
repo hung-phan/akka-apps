@@ -34,7 +34,7 @@ trait STMultiNodeSpec
 
   override def afterAll() = {
     multiNodeSpecAfterAll()
-    // remove all test_data
+
     "rm -rf test_data" !
   }
 

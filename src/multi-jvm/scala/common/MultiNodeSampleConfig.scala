@@ -9,14 +9,25 @@ object MultiNodeSampleConfig extends MultiNodeConfig {
   val node3 = role("node-3")
 
   commonConfig(
-    ConfigFactory.parseString("""
-                                |akka.loglevel = "INFO"
-                                |akka.cluster.log-info = off
-                                |akka.actor.serialize-messages = on
-                                |akka.remote.artery.canonical.port = 0
-                                |akka.cluster.log-info = off
-                                |akka.cluster.metrics.enabled=off
-                                |akka.log-dead-letters-during-shutdown = off
-    """.stripMargin).withFallback(ConfigFactory.load("test.conf"))
+    ConfigFactory
+      .parseString("""
+        |akka {
+        |  loglevel = "INFO"
+        |  log-dead-letters-during-shutdown = off
+        |  actor {
+        |    serialize-messages = on
+        |  }
+        |  remote {
+        |    artery {
+        |      canonical.port = 0
+        |    }
+        |  }
+        |  cluster {
+        |    log-info = off
+        |    metrics.enabled = off
+        |  }
+        |}
+      """.stripMargin)
+      .withFallback(ConfigFactory.load("test.conf"))
   )
 }

@@ -48,7 +48,7 @@ libraryDependencies ++= Seq(
 lazy val root = (project in file("."))
   .settings(
     dockerExposedPorts ++= Seq(2552, 8558, 8080),
-    dockerExposedVolumes := Seq("/opt/docker/logs", "/opt/docker/data")
+    dockerExposedVolumes := Seq("/opt/docker/data")
   )
   .enablePlugins(MultiJvmPlugin, JavaServerAppPackaging)
   .configs(MultiJvm)
