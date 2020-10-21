@@ -19,7 +19,7 @@ spec:
         - name: chatsystem
           image: akka-apps:0.1
           ports:
-            # defined in prod.conf
+            # defined in application.conf
             - name: remoting
               containerPort: 2552
               protocol: TCP
