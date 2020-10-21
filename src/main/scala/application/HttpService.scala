@@ -31,7 +31,7 @@ object HttpService {
           |<body>
           |<div id="content"></div>
           |<script>
-          |  const exampleSocket = new WebSocket("ws://localhost:3000/ws?userid=1");
+          |  const exampleSocket = new WebSocket("ws://localhost:8080/ws?userid=1");
           |
           |  console.log("starting websocket...");
           |

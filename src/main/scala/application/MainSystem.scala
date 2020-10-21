@@ -8,8 +8,11 @@ import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
 import akka.cluster.sharding.typed.ShardingEnvelope
 import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, Entity}
 import akka.http.scaladsl.Http
+import akka.management.cluster.bootstrap.ClusterBootstrap
+import akka.management.scaladsl.AkkaManagement
 import akka.stream.Materializer
 import akka.util.Timeout
+import com.typesafe.config.ConfigFactory
 import infrastructure.serializer.KryoSerializable
 
 import scala.concurrent.duration._
@@ -35,25 +38,22 @@ object MainSystem extends App {
       implicit val scheduler = system.scheduler
       implicit val materializer = Materializer(system)
 
-      lazy val sharding = ClusterSharding(ctx.system)
-      lazy val userShardRegion
-          : ActorRef[ShardingEnvelope[UserService.UserCommand]] =
+      val sharding = ClusterSharding(ctx.system)
+      val userShardRegion: ActorRef[ShardingEnvelope[UserService.UserCommand]] =
         sharding.init(
           Entity(UserService.TypeKey)(entityContext =>
             UserService.user(entityContext.entityId, entityContext.shard)
           ).withStopMessage(UserService.Terminate)
         )
-      lazy val chatShardRegion
-          : ActorRef[ShardingEnvelope[ChatService.Command]] = {
-        sharding.init(
-          Entity(ChatService.TypeKey)(entityContext =>
-            ChatService(entityContext.entityId, entityContext.shard)
-          ).withStopMessage(ChatService.Terminate)
-        )
-      }
+
+      // Akka Management hosts the HTTP routes used by bootstrap
+      AkkaManagement(system).start()
+
+      // Starting the bootstrap process needs to be done explicitly
+      ClusterBootstrap(system).start()
 
       Http()
-        .newServerAt("localhost", 3000)
+        .newServerAt("0.0.0.0", 8080)
         .bindFlow(HttpService.getRoutes(ctx.self))
         .map(_.addToCoordinatedShutdown(20 seconds))
 
@@ -73,7 +73,16 @@ object MainSystem extends App {
       }
     }
 
-  val system = ActorSystem(guardian(), "ChatSystem")
+  val system = ActorSystem(
+    guardian(),
+    "ChatSystem",
+    sys.env.getOrElse("env", "prod") match {
+      case "dev" =>
+        ConfigFactory.load("development.conf")
+      case "prod" =>
+        ConfigFactory.load("application.conf")
+    }
+  )
 
   CoordinatedShutdown(system).addTask(
     CoordinatedShutdown.PhaseBeforeServiceUnbind,

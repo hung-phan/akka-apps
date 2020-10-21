@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: chatsystem
+  labels:
+    app: chatsystem
+spec:
+  serviceName: chatsystem
+  replicas: 4
+  selector:
+    matchLabels:
+      app: chatsystem
+  template:
+    metadata:
+      labels:
+        app: chatsystem
+    spec:
+      containers:
+        - name: chatsystem
+          image: akka-apps:0.1
+          ports:
+            # defined in application.conf
+            - name: remoting
+              containerPort: 2552
+              protocol: TCP
+            - name: management
+              containerPort: 8558
+              protocol: TCP
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: REQUIRED_CONTACT_POINT_NR
+              value: "1"
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: management
+            periodSeconds: 10
+            failureThreshold: 3
+            initialDelaySeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /alive
+              port: management
+            periodSeconds: 10
+            failureThreshold: 5
+            initialDelaySeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: chatsystem
+  name: chatsystem
+spec:
+  type: LoadBalancer
+#  clusterIP: None
+  ports:
+    - protocol: TCP
+      port: 8558
+      targetPort: 8558
+      name: management
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+      name: http
+  selector:
+    app: chatsystem
