@@ -92,7 +92,9 @@ object UserService {
         Effect.none
 
       case ProcessMsg(msg, _) =>
-        state.sockets.foreach { _ ! DispatchMsgToUser(s"Reply from server: ${msg}") }
+        state.sockets.foreach {
+          _ ! DispatchMsgToUser(s"Reply from server: ${msg}")
+        }
         Effect.none
 
       case ReceiveTimeout =>
@@ -157,10 +159,12 @@ object UserService {
             downstream ! DispatchMsgToUser(msg)
             Behaviors.same
 
-          case SocketDisconnect =>
+          case disconnectEvent @ SocketDisconnect =>
+            downstream ! disconnectEvent
             Behaviors.stopped
 
-          case SocketFailure(ex) =>
+          case failure @ SocketFailure(ex) =>
+            downstream ! failure
             throw ex
         }
         .receiveSignal {
