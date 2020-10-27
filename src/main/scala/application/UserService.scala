@@ -23,14 +23,14 @@ import akka.stream.{FlowShape, Materializer, OverflowStrategy}
 import akka.util.{CompactByteString, Timeout}
 import domain.common.ID
 import domain.model.UserModel.UserConnections
-import infrastructure.serializer.KryoSerializable
+import infrastructure.serializer.JacksonSerializable
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
 object UserService {
-  sealed trait UserCommand extends KryoSerializable
+  sealed trait UserCommand extends JacksonSerializable
   case class AddSocket(socket: ActorRef[UserSocketCommand]) extends UserCommand
   case class RemoveSocket(socket: ActorRef[UserSocketCommand])
       extends UserCommand
@@ -41,11 +41,11 @@ object UserService {
   case object ReceiveTimeout extends UserCommand
   case object Terminate extends UserCommand
 
-  sealed trait UserCommandResp extends KryoSerializable
+  sealed trait UserCommandResp extends JacksonSerializable
   case class QueryStateResp(sockets: Set[ActorRef[UserSocketCommand]])
       extends UserCommandResp
 
-  sealed trait UserEvent extends KryoSerializable
+  sealed trait UserEvent extends JacksonSerializable
   case class AddedConn(conn: ActorRef[UserSocketCommand]) extends UserEvent
   case class RemovedConn(conn: ActorRef[UserSocketCommand]) extends UserEvent
 

@@ -17,13 +17,13 @@ import akka.persistence.typed.scaladsl.{
 import domain.common.ID
 import domain.model.ChatModel.{ChatLogEntity, ChatState}
 import domain.model.UserModel.UserEntity
-import infrastructure.serializer.KryoSerializable
+import infrastructure.serializer.JacksonSerializable
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
 object ChatService {
-  sealed trait Command extends KryoSerializable
+  sealed trait Command extends JacksonSerializable
   case class AddUser(user: UserEntity) extends Command
   case class RemoveUser(user: UserEntity) extends Command
   case class AppendMsg(msg: ChatLogEntity) extends Command
@@ -31,10 +31,10 @@ object ChatService {
   case object ReceiveTimeout extends Command
   case object Terminate extends Command
 
-  sealed trait CommandResp extends KryoSerializable
+  sealed trait CommandResp extends JacksonSerializable
   case class QueryStateResp(state: ChatState) extends CommandResp
 
-  sealed trait Event extends KryoSerializable
+  sealed trait Event extends JacksonSerializable
   case class AddedUser(user: UserEntity) extends Event
   case class RemovedUser(user: UserEntity) extends Event
   case class AppendedMsg(smg: ChatLogEntity) extends Event

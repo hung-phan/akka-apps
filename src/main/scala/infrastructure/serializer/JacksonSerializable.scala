@@ -1,3 +1,3 @@
 package infrastructure.serializer
 
-trait KryoSerializable
+trait JacksonSerializable

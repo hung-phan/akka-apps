@@ -13,13 +13,13 @@ import akka.management.scaladsl.AkkaManagement
 import akka.stream.Materializer
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import infrastructure.serializer.KryoSerializable
+import infrastructure.serializer.JacksonSerializable
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
 object MainSystem extends App {
-  sealed trait Command extends KryoSerializable
+  sealed trait Command extends JacksonSerializable
   case class CreateUserSocket(
       userId: String,
       socket: ActorRef[UserService.UserSocketCommand],
@@ -27,7 +27,7 @@ object MainSystem extends App {
   ) extends Command
   case class Stop(replyTo: ActorRef[Done]) extends Command
 
-  sealed trait CommandResp extends KryoSerializable
+  sealed trait CommandResp extends JacksonSerializable
   case class CreateUserSocketResp(ref: ActorRef[UserService.UserSocketCommand])
       extends CommandResp
 
