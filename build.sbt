@@ -2,7 +2,7 @@ name := "akka-apps"
 
 version := "0.1"
 
-scalaVersion := "2.13.3"
+scalaVersion := "2.13.4"
 
 lazy val akkaVersion = "2.6.10"
 lazy val akkaHttpVersion = "10.2.1"
