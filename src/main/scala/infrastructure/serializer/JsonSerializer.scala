@@ -1,25 +1,17 @@
 package infrastructure.serializer
 
 import shapeless.labelled.FieldType
-import shapeless.{
-  :+:,
-  ::,
-  CNil,
-  Coproduct,
-  HList,
-  HNil,
-  Inl,
-  Inr,
-  LabelledGeneric,
-  Lazy,
-  Witness
-}
+import shapeless.{:+:, ::, CNil, Coproduct, HList, HNil, Inl, Inr, LabelledGeneric, Lazy, Witness}
 
 object JsonSerializer {
   sealed trait JsonValue
 
   trait JsonEncoder[A] {
     def encode(value: A): JsonValue
+  }
+
+  object JsonEncoder {
+    def apply[A](implicit enc: JsonEncoder[A]): JsonEncoder[A] = enc
   }
 
   trait JsonObjectEncoder[A] extends JsonEncoder[A] {
