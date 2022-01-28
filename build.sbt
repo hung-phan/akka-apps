@@ -11,9 +11,9 @@ lazy val jacksonVersion = "3.6.6"
 
 libraryDependencies ++= Seq(
   // logging
-  "ch.qos.logback" % "logback-classic" % "1.2.3",
+  "ch.qos.logback" % "logback-classic" % "1.2.10",
   //shapeless
-  "com.chuusai" %% "shapeless" % "2.3.3",
+  "com.chuusai" %% "shapeless" % "2.3.7",
   // akka
   "com.typesafe.akka" %% "akka-stream-typed" % akkaVersion,
   "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
@@ -40,8 +40,8 @@ libraryDependencies ++= Seq(
   // local levelDB stores
   "org.fusesource.leveldbjni" % "leveldbjni-all" % "1.8",
   // test
-  "org.scalatest" %% "scalatest" % "3.2.2" % Test,
-  "org.scalamock" %% "scalamock" % "5.0.0" % Test
+  "org.scalatest" %% "scalatest" % "3.2.11" % Test,
+  "org.scalamock" %% "scalamock" % "5.2.0" % Test
 )
 
 lazy val root = (project in file("."))
