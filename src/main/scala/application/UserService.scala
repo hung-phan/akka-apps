@@ -219,7 +219,7 @@ object UserService {
     connPromise.map {
       case MainSystem.CreateUserSocketResp(conn) =>
         Flow.fromGraph(
-          GraphDSL.create(socketSource) { implicit builder => socket =>
+          GraphDSL.createGraph(socketSource) { implicit builder => socket =>
             import GraphDSL.Implicits._
 
             // transforms messages from the websockets into the actor's protocol
