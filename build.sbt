@@ -2,18 +2,18 @@ name := "akka-apps"
 
 version := "0.1"
 
-scalaVersion := "2.13.4"
+scalaVersion := "2.13.8"
 
-lazy val akkaVersion = "2.6.18"
-lazy val akkaHttpVersion = "10.2.7"
-lazy val akkaManagementVersion = "1.1.2"
+lazy val akkaVersion = "2.6.19"
+lazy val akkaHttpVersion = "10.2.9"
+lazy val akkaManagementVersion = "1.1.3"
 lazy val jacksonVersion = "3.6.6"
 
 libraryDependencies ++= Seq(
   // logging
-  "ch.qos.logback" % "logback-classic" % "1.2.10",
+  "ch.qos.logback" % "logback-classic" % "1.2.11",
   //shapeless
-  "com.chuusai" %% "shapeless" % "2.3.7",
+  "com.chuusai" %% "shapeless" % "2.3.9",
   // akka
   "com.typesafe.akka" %% "akka-stream-typed" % akkaVersion,
   "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
@@ -40,7 +40,7 @@ libraryDependencies ++= Seq(
   // local levelDB stores
   "org.fusesource.leveldbjni" % "leveldbjni-all" % "1.8",
   // test
-  "org.scalatest" %% "scalatest" % "3.2.11" % Test,
+  "org.scalatest" %% "scalatest" % "3.2.12" % Test,
   "org.scalamock" %% "scalamock" % "5.2.0" % Test
 )
 
